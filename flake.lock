@@ -889,6 +889,30 @@
         "type": "github"
       }
     },
+    "nixarchy-gliff-manager": {
+      "inputs": {
+        "home-manager": [
+          "home-manager"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791755428,
+        "narHash": "sha256-rmniKgXPSYCuctaHmS4GDlgXoBIa9kPiRArJh21PvUg=",
+        "owner": "olafkfreund",
+        "repo": "nixarchy-gliff-manager",
+        "rev": "71f87207096e425f56c53103b23f64fb8643f5d5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "olafkfreund",
+        "repo": "nixarchy-gliff-manager",
+        "rev": "71f87207096e425f56c53103b23f64fb8643f5d5",
+        "type": "github"
+      }
+    },
     "nixarchy-gltui": {
       "inputs": {
         "nixpkgs": [
@@ -1299,6 +1323,7 @@
         "nixarchy-distrobox": "nixarchy-distrobox",
         "nixarchy-flatsnap": "nixarchy-flatsnap",
         "nixarchy-ghtui": "nixarchy-ghtui",
+        "nixarchy-gliff-manager": "nixarchy-gliff-manager",
         "nixarchy-gltui": "nixarchy-gltui",
         "nixarchy-herdr": "nixarchy-herdr",
         "nixarchy-hyprsettngs": "nixarchy-hyprsettngs",
