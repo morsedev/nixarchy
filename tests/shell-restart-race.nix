@@ -29,7 +29,11 @@ pkgs.runCommand "nixarchy-shell-restart-race"
     ];
   }
   ''
-    patched=${omarchy}/share/omarchy/bin/omarchy-restart-shell
+    # Keep this harness focused on teardown timing. Replace only the absolute
+    # IPC dependency with our readiness stub; real IPC is checked separately.
+    patched=$TMPDIR/restart
+    sed 's|${omarchy}/bin/omarchy-shell|omarchy-shell|g' \
+      ${omarchy}/share/omarchy/bin/omarchy-restart-shell > "$patched"
     upstream=${omarchySrc}/bin/omarchy-restart-shell
     [ -f "$patched" ] && [ -f "$upstream" ] || { echo "restart script missing ($patched, $upstream)" >&2; exit 1; }
 
@@ -74,6 +78,10 @@ pkgs.runCommand "nixarchy-shell-restart-race"
     printf '%s\n' "#!${pkgs.bash}/bin/bash" \
       'if [ "$2" = show-environment ]; then echo "OMARCHY_PATH=$TREE"; fi' > "$stubs/systemctl"
     printf '%s\n' "#!${pkgs.bash}/bin/bash" 'exit 1' > "$stubs/omarchy-hyprland-session-locked"
+    # Isolate the teardown race: no registered live instance, so the restart
+    # uses its existing recovery fallback. Real discovery is tested separately.
+    printf '%s\n' "#!${pkgs.bash}/bin/bash" "echo '[]'" > "$stubs/qs"
+    export OMARCHY_PATH=$TREE WAYLAND_DISPLAY=wayland-test
     chmod +x "$stubs"/*
     export PATH=$stubs:$PATH HYPRLAND_INSTANCE_SIGNATURE=test XDG_RUNTIME_DIR=$TMPDIR
 

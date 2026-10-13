@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# nixarchy:new
+# omarchy:summary=Resolve and synchronize the running Omarchy session
+# omarchy:hidden=true
+# Runtime identity belongs to the live shell, not a caller's generation.
+set -euo pipefail
+
+fail() { echo "nixarchy-shell-session: $*" >&2; exit 1; }
+run() { timeout --kill-after=1s 2s "$@"; }
+
+action=${1:-}
+case $action in pid|tree|sync) shift ;; *) fail 'usage: nixarchy-shell-session {pid|tree|sync} [--if-running] [--pid PID] [--wait SECONDS]' ;; esac
+if_running=0
+expected_pid=
+wait_seconds=0
+while (($#)); do
+  case $1 in
+    --if-running) if_running=1; shift ;;
+    --pid|--wait)
+      option=$1
+      (($# >= 2)) && [[ $2 =~ ^[0-9]+$ ]] || fail "$option requires a nonnegative integer"
+      if [[ $option == --pid ]]; then expected_pid=$2; else wait_seconds=$((10#$2)); fi
+      shift 2 ;;
+    *) fail "unknown argument: $1" ;;
+  esac
+done
+
+display=${WAYLAND_DISPLAY:-}
+if [[ -z $display ]]; then
+  # SSH has no display. The manager locates the display, never the tree.
+  manager_env=$(run systemctl --user show-environment) || fail 'cannot read the session environment'
+  while IFS= read -r entry; do
+    case $entry in WAYLAND_DISPLAY=*) display=${entry#*=} ;; esac
+  done <<< "$manager_env"
+fi
+[[ -n $display ]] || fail 'no Wayland session; refusing to select another display'
+
+resolve() {
+  local listing records pid config tree entry process_display process_instance process_path
+  local -a fields
+  selected_pid='' selected_tree='' selected_instance='' selected_path=''
+  listing=$(run qs list --all --json) || fail 'cannot list Quickshell instances'
+  # Quickshell 0.3.1 prints this non-JSON sentinel even with --json.
+  [[ $listing != 'No running instances.' ]] || listing='[]'
+  records=$(jq -ce '
+    if type == "array" and all(.[];
+      (.config_path | type == "string") and
+      (.pid | type == "number" and . > 0 and . == floor))
+    then . else error("invalid instance list") end
+  ' <<< "$listing") || fail 'cannot read Quickshell instance list'
+  mapfile -d '' -t fields < <(jq -j '.[] | .pid, "\u0000", .config_path, "\u0000"' <<< "$records")
+  for ((index=0; index<${#fields[@]}; index+=2)); do
+    pid=${fields[index]}
+    config=${fields[index+1]}
+    [[ $config == */shell/shell.qml ]] || continue
+    tree=${config%/shell/shell.qml}
+    [[ -f $tree/bin/omarchy-system-sleep-lock ]] || continue
+    process_display='' process_instance='' process_path=''
+    # Read NUL-delimited values literally; never source or eval /proc data.
+    if ! {
+      while IFS= read -r -d '' entry; do
+        case $entry in
+          WAYLAND_DISPLAY=*) process_display=${entry#*=} ;;
+          HYPRLAND_INSTANCE_SIGNATURE=*) process_instance=${entry#*=} ;;
+          PATH=*) process_path=${entry#*=} ;;
+        esac
+      done < "/proc/$pid/environ"
+    } 2>/dev/null; then
+      continue
+    fi
+    [[ $process_display == "$display" ]] || continue
+    [[ -z $selected_pid ]] || fail 'more than one Omarchy shell on this display; refusing to guess'
+    selected_pid=$pid selected_tree=$tree selected_instance=$process_instance selected_path=$process_path
+  done
+  if [[ -n $expected_pid && $selected_pid != "$expected_pid" ]]; then selected_pid=; fi
+}
+
+deadline=$((SECONDS + wait_seconds))
+while :; do
+  resolve
+  if [[ -n $selected_pid ]] || ((SECONDS >= deadline)); then break; fi
+  sleep 0.1
+done
+if [[ -z $selected_pid ]]; then
+  ((if_running)) && exit 0
+  fail 'Omarchy shell is not running on this display'
+fi
+case $action in
+  pid) printf '%s\n' "$selected_pid"; exit 0 ;;
+  tree) printf '%s\n' "$selected_tree"; exit 0 ;;
+esac
+
+[[ -n $selected_instance ]] || fail 'the shell has no Hyprland instance; nothing was changed'
+# Keep user tools and profiles, remove old tree/bin entries, and deduplicate.
+new_path=$selected_tree/bin
+rest=$selected_path
+seen=("$new_path")
+while :; do
+  entry=${rest%%:*}
+  if [[ -z $entry || ! -f ${entry%/*}/shell/shell.qml ]]; then
+    duplicate=0
+    for previous in "${seen[@]}"; do
+      if [[ $previous == "$entry" ]]; then duplicate=1; break; fi
+    done
+    if ((!duplicate)); then new_path+=":$entry"; seen+=("$entry"); fi
+  fi
+  [[ $rest == *:* ]] || break
+  rest=${rest#*:}
+done
+code=$(jq -nr --arg tree "$selected_tree" --arg path "$new_path" \
+  '"hl.env(\"OMARCHY_PATH\", " + ($tree | tojson) + "); hl.env(\"PATH\", " + ($path | tojson) + ")"')
+reply=$(run hyprctl -i "$selected_instance" eval "$code") || fail 'could not update Hyprland environment'
+[[ $reply == ok ]] || fail "Hyprland refused the environment update: $reply"
+# Refresh cached Lua paths without rerunning autostart.
+reply=$(run hyprctl -i "$selected_instance" reload config-only) || fail 'could not reload Hyprland configuration'
+[[ $reply == ok ]] || fail "Hyprland refused the configuration reload: $reply"
+run dbus-update-activation-environment --systemd "OMARCHY_PATH=$selected_tree" "PATH=$new_path"
