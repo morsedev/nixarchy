@@ -160,6 +160,98 @@ pkgs.runCommand "nixarchy-home-backup-restore"
     grep -q 'Could not restore' "$log" || fail "failed copy lacked a diagnosis"
     test ! -e "$home/.local/state/omarchy/theme.name" || fail "failed copy left an unexpected destination"
 
+    mkdir -p "$TMPDIR/gumbin"
+    printf '%s\n' '#!${pkgs.bash}/bin/bash' \
+      '[[ $1 == choose ]] && { echo "Nowhere for now"; exit 0; }' \
+      '[[ $* != *anyway* ]]' > "$TMPDIR/gumbin/gum"
+    chmod +x "$TMPDIR/gumbin/gum"
+    export PATH=$TMPDIR/gumbin:$PATH
+    bsetup() {
+      home=$TMPDIR/$1/home
+      repo=$TMPDIR/$1/repo
+      flake=$TMPDIR/$1/flake
+      log=$TMPDIR/$1/log
+      mkdir -p "$home/.local/state/omarchy" "$flake"
+      touch "$flake/.nixarchy-url"
+      # Not shell.json: build.yml refuses any write to it in the tree (#847).
+      printf 'theme\n' > "$home/.local/state/omarchy/theme.name"
+      HOME=$home git config --global user.name tester
+      HOME=$home git config --global user.email tester@example.invalid
+    }
+    backup() {
+      HOME=$home NIXARCHY_HOME_BACKUP_REPO=$repo NIXARCHY_FLAKE=$flake \
+        bash ${script} backup > "$log" 2>&1
+    }
+
+    case_name=backup-foreign-dir
+    bsetup "$case_name"
+    mkdir -p "$repo"
+    printf 'precious\n' > "$repo/keep.txt"
+    cp "$repo/keep.txt" "$TMPDIR/keep-original"
+    if backup; then fail "$case_name: backup into a foreign directory succeeded"; fi
+    cmp -s "$TMPDIR/keep-original" "$repo/keep.txt" || fail "$case_name: foreign file was touched: $(cat "$log")"
+    test ! -e "$repo/.git" || fail "$case_name: .git was created in a foreign directory"
+    grep -q 'refusing to empty it' "$log" || fail "$case_name: no refusal in: $(cat "$log")"
+
+    case_name=backup-foreign-git
+    bsetup "$case_name"
+    mkdir -p "$repo"
+    HOME=$home git init -q -b main "$repo"
+    printf 'tracked\n' > "$repo/a.txt"
+    HOME=$home git -C "$repo" add a.txt
+    HOME=$home git -C "$repo" commit -qm first
+    printf 'unsaved work\n' > "$repo/wip.txt"
+    if backup; then fail "$case_name: backup into a foreign repository succeeded"; fi
+    grep -qx 'unsaved work' "$repo/wip.txt" || fail "$case_name: uncommitted file was deleted: $(cat "$log")"
+    grep -q 'nixarchy-home-backup' "$log" || fail "$case_name: no adopt command in: $(cat "$log")"
+
+    case_name=backup-default-upgrade
+    bsetup "$case_name"
+    repo=$home/.local/share/nixarchy/home-backup
+    mkdir -p "$repo"
+    HOME=$home git init -q -b main "$repo"
+    printf 'old\n' > "$repo/old.txt"
+    HOME=$home git -C "$repo" add old.txt
+    HOME=$home git -C "$repo" commit -qm first
+    HOME=$home NIXARCHY_FLAKE=$flake bash ${script} backup > "$log" 2>&1 \
+      || fail "$case_name: upgrade of an unmarked default repository failed: $(cat "$log")"
+    test -e "$repo/.git/nixarchy-home-backup" || fail "$case_name: marker missing"
+    HOME=$home git -C "$repo" ls-files --error-unmatch .local/state/omarchy/theme.name >/dev/null 2>&1 || fail "$case_name: theme.name not committed"
+
+    case_name=backup-fresh
+    bsetup "$case_name"
+    backup || fail "$case_name: fresh backup failed: $(cat "$log")"
+    test -e "$repo/.git/nixarchy-home-backup" || fail "$case_name: marker missing"
+    HOME=$home git -C "$repo" ls-files --error-unmatch .local/state/omarchy/theme.name >/dev/null 2>&1 || fail "$case_name: theme.name not committed"
+
+    case_name=backup-link-out
+    bsetup "$case_name"
+    mkdir -p "$home/.aws" "$home/.config/hypr"
+    printf 'aws-credential-body-xyz\n' > "$home/.aws/credentials"
+    ln -s "$home/.aws/credentials" "$home/.config/hypr/hyprland.conf"
+    backup || fail "$case_name: declining the review should still exit 0: $(cat "$log")"
+    if HOME=$home git -C "$repo" rev-parse HEAD >/dev/null 2>&1; then fail "$case_name: a link out of the list was committed: $(cat "$log")"; fi
+    if grep -rq --exclude-dir=.git aws-credential-body-xyz "$repo"; then fail "$case_name: the linked credential was copied into the repository"; fi
+    grep -q 'hyprland.conf.*outside the backup list' "$log" || fail "$case_name: the link was not put to the credential review: $(cat "$log")"
+
+    case_name=backup-link-excluded
+    bsetup "$case_name"
+    mkdir -p "$home/.local/state/omarchy" "$home/.config/hypr"
+    printf 'clipboard-body-xyz\n' > "$home/.local/state/omarchy/clipboard-history.json"
+    ln -s "$home/.local/state/omarchy/clipboard-history.json" "$home/.config/hypr/clip.json"
+    backup || fail "$case_name: declining the review should still exit 0: $(cat "$log")"
+    if HOME=$home git -C "$repo" rev-parse HEAD >/dev/null 2>&1; then fail "$case_name: a link to an excluded file was committed: $(cat "$log")"; fi
+    if grep -rq --exclude-dir=.git clipboard-body-xyz "$repo"; then fail "$case_name: the excluded file was copied through a link"; fi
+    grep -q 'clip.json.*outside the backup list' "$log" || fail "$case_name: the link was not put to the credential review: $(cat "$log")"
+
+    case_name=backup-link-store
+    bsetup "$case_name"
+    mkdir -p "$home/.config/hypr"
+    ln -s ${pkgs.bash}/bin/bash "$home/.config/hypr/hyprland.conf"
+    backup || fail "$case_name: backup failed: $(cat "$log")"
+    if grep -q 'outside the backup list' "$log"; then fail "$case_name: a link into the store was flagged: $(cat "$log")"; fi
+    test -f "$repo/.config/hypr/hyprland.conf" || fail "$case_name: the linked file was not copied"
+
     echo "home backup restore limits paths and reports failed copies (#1080)"
     touch "$out"
   ''
