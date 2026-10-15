@@ -848,6 +848,33 @@ stdenvNoCC.mkDerivation {
                   --replace-fail '/usr/bin/fprintd-list' \
                   '/run/current-system/sw/bin/fprintd-list'
 
+                # quattro's /usr paths that a nixarchy session actually reaches (#1278).
+                # The input-method and font tools run stdlib-only Python helpers.
+                for f in omarchy-font-cjk omarchy-input-method omarchy-setup-input \
+                  omarchy-setup-keyboard omarchy-language; do
+                  substituteInPlace $out/share/omarchy/bin/$f \
+                    --replace-fail '/usr/bin/python3' '${python3}/bin/python3'
+                done
+                # The platform probe runs at every first login (first-run ->
+                # lifecycle-dispatch setup-user). It re-execs itself under a clean
+                # root-owned PATH; /bin/bash and /usr/bin hold nothing here.
+                substituteInPlace $out/share/omarchy/bin/omarchy-hw-platform \
+                  --replace-fail 'exec /usr/bin/env -i PATH=/usr/bin /bin/bash -p' \
+                  'exec /run/current-system/sw/bin/env -i PATH=/run/current-system/sw/bin /run/current-system/sw/bin/bash -p' \
+                  --replace-fail 'export PATH=/usr/bin' 'export PATH=/run/current-system/sw/bin'
+                substituteInPlace $out/share/omarchy/bin/omarchy-lifecycle-dispatch \
+                  --replace-fail 'fixed_path=/usr/local/sbin:/usr/local/bin:/usr/bin' \
+                  'fixed_path=/run/current-system/sw/bin' \
+                  --replace-fail 'detect=(/usr/bin/env -i' 'detect=(/run/current-system/sw/bin/env -i' \
+                  --replace-fail 'exec /usr/bin/env -i "''${environment[@]}"' \
+                  'exec /run/current-system/sw/bin/env -i "''${environment[@]}"'
+                substituteInPlace $out/share/omarchy/bin/omarchy-remove-security-fingerprint \
+                  --replace-fail '$(/usr/bin/id -nu' '$(/run/current-system/sw/bin/id -nu' \
+                  --replace-fail '$(/usr/bin/id -un)' '$(/run/current-system/sw/bin/id -un)'
+                substituteInPlace $out/share/omarchy/bin/omarchy-theme-set-fcitx5 \
+                  --replace-fail '/usr/share/fcitx5/themes/default' \
+                  '/run/current-system/sw/share/fcitx5/themes/default'
+
                 # quattro routes both former tensaku-edit call sites through omasnap,
                 # which is in the runtime list above, so neither needs a patch.
 

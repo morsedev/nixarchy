@@ -1796,7 +1796,45 @@ pkgs.testers.runNixOSTest {
                # `omarchy-pkg-add hermes-desktop`, which reaches this port's
                # pacman shim and says so. Patching the paths would point at
                # files that do not exist either.
-               "omarchy-install-ai-hermes"]
+               "omarchy-install-ai-hermes",
+               # quattro (edge, #1278). Reachable gaps, tracked in #1280: language
+               # switching generates locales at runtime (i18n.supportedLocales
+               # here), and the fingerprint resume hook lives in /usr/lib.
+               "omarchy-language", "omarchy-locale-generate",
+               "omarchy-apply-lock", "omarchy-remove-security-fingerprint",
+               # Hardened privileged helpers that pin /usr/bin binaries. Their
+               # callers are upstream's update, pacman and channel flows, which
+               # nixarchy replaces, and the passwordless-sudo row edge hides; so
+               # none is reached, and patching their bash-identity checks would
+               # be an untestable change to a privilege check.
+               "omarchy-security-functions", "omarchy-update-stay-awake",
+               "omarchy-refresh-pacman", "omarchy-update-keyring",
+               "omarchy-provision-hardware",
+               # Patched where reached; the /usr left is the aarch64-apple
+               # implementation path, which x86_64 never selects.
+               "omarchy-lifecycle-dispatch",
+               # Read omarchy-platform's hardware data, an Arch package with no
+               # port. Every read is guarded (-r, 2>/dev/null), so they fall back.
+               "omarchy-brightness-display", "omarchy-hw-display",
+               "omarchy-menu-keybindings",
+               # /usr only as a fallback default or a match pattern: XDG_DATA_DIRS
+               # is always set here, update-restart's loop is patched off the
+               # variable, and an unmatched browser path falls back to a plain
+               # launch.
+               "omarchy-cmd-default-browser", "omarchy-update-restart",
+               "omarchy-cmd-browser-handoff",
+               # Arch installers for apps that are mapped, excepted or absent
+               # here: Claude Desktop (data/menu-exceptions.nix), its Chromium
+               # extension, Superwhisper, and the hermes/openclaw CLIs, which
+               # omarchy-default-agent reaches through nixpkgs or mise instead.
+               "omarchy-install-ai-claude", "omarchy-install-chromium-claude",
+               "omarchy-install-dictation-superwhisper",
+               "omarchy-remove-dictation-superwhisper",
+               "omarchy-install-dictation-voxtype",
+               "omarchy-install-hermes-cli", "omarchy-install-openclaw-cli",
+               # The /usr/bin/python3 here runs on the REMOTE machine an account
+               # is transferred to, not on this one.
+               "omarchy-agent-account-transfer"]
     # The offender list comes back from one plain shell command and the
     # filtering happens here. A first version did the allowlisting in shell
     # too, with a grep -v -x -F against a generated list, and it matched

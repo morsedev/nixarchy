@@ -689,6 +689,11 @@ let
         "remove.ai.ollama" = {
           when = "false";
         };
+        # quattro's passwordless-sudo toggle writes /etc/sudoers.d and
+        # /etc/tmpfiles.d rules; on NixOS sudo is configuration (#1280).
+        "setup.security.passwordless-sudo" = {
+          when = "false";
+        };
 
         # The Arch wiki is the wrong manual on a NixOS host. All three wear
         # nf-linux-nixos (U+F1105), the snowflake -- the icon and label are
