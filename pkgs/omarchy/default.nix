@@ -111,6 +111,7 @@
   libxkbcommon,
   xdg-user-dirs,
   satty,
+  omasnap,
   wl-screenrec,
   ttfx,
   # Build-time only: the font the boot splash's animation frames are set in.
@@ -181,10 +182,6 @@ let
     "setup.remote.connect": {"icon":"󰐲","label":"Connect to a machine","aliases":["rdp","connect","remote","desktop"],"when":"command -v sdl-freerdp >/dev/null || command -v xfreerdp >/dev/null","action":"omarchy-launch-floating-terminal-with-presentation nixarchy-remote connect"},
     "setup.remote.gliff": {"icon":"󰐲","label":"Connect with gliff","aliases":["gliff","remote","connect","omarchy","hyprland"],"when":"command -v gliff >/dev/null","action":"uwsm-app -- gliff"},
     "setup.remote.gliff-manager": {"icon":"󰛳","label":"Manage gliff machines","aliases":["gliff","machines","remote","manager"],"when":"nixarchy-plugin --enabled nixarchy.gliff-manager","action":"nixarchy-plugin nixarchy.gliff-manager"},
-  '';
-
-  antigravityMenuRow = builtins.toFile "antigravity-menu-row.jsonc" ''
-    "setup.default.agent.antigravity": {"icon":"","label":"Antigravity","checked":"[[ \"$(omarchy-default-agent)\" == \"antigravity\" ]] && command -v agy >/dev/null","action":"omarchy-default-agent antigravity"},
   '';
 
   runtimeDeps = [
@@ -320,6 +317,7 @@ let
     libxkbcommon # xkbcli, for the keyboard-layout widget
     xdg-user-dirs # xdg-user-dirs-update
     satty # screenshot annotation
+    omasnap # quattro's screenshot, edit and OCR tool, exec'd by name
 
     # #204: three user-facing paths -- the screenshot notification's Edit,
     # imv's Ctrl+E, and opening an image from clipboard history -- reached for
@@ -444,14 +442,14 @@ stdenvNoCC.mkDerivation {
 
                     # Bound the Lua source scan so a loop in hyprland.lua cannot pin a CPU when this menu opens.
                     substituteInPlace $out/share/omarchy/bin/omarchy-menu-keybindings \
-                      --replace-fail "    lua <<'LUA'" "    timeout 3 lua <<'LUA'"
+                      --replace-fail "    lua -E - <<'LUA'" "    timeout 3 lua -E - <<'LUA'"
                     # Drop undescribed binds in non-default submaps (a hint plugin registers
                     # ~2,800): the list otherwise exceeds the 128 KiB single-argument limit
                     # omarchy-menu-select hands to perl and omarchy-shell, so the menu never opens.
                     substituteInPlace $out/share/omarchy/bin/omarchy-menu-keybindings \
                       --replace-fail '      if (!seen) return' '      if (!seen) return
       if (f["submap"] != "" && f["description"] == "") { seen = 0; return }' \
-                      --replace-fail "printf 'v11\\n'" "printf 'v11-submaps\\n'"
+                      --replace-fail "printf 'v17\\n'" "printf 'v17-submaps\\n'"
                     # Summoned from a key bind, the menu reaches the screen after omarchy-shell's
                     # 2 s IPC timeout; the script then exits and the menu it opened does nothing.
                     # The script waits for the selection anyway, so a longer timeout costs nothing.
@@ -536,41 +534,9 @@ stdenvNoCC.mkDerivation {
                     install -Dm444 ${./branding/logo.txt} $out/share/omarchy/logo.txt
                     python3 ${./check-logo.py} ${./branding/logo.txt} ${src}/logo.txt
 
-                    # Omarchy ships wallpapers up to 7680px wide. Anything wider than
-                    # GL_MAX_TEXTURE_SIZE cannot become a texture, and the background renders
-                    # black with no error anywhere -- Qt reports the image Ready, the layer
-                    # surface exists at full size, and nothing is drawn. 4096 is the limit on
-                    # llvmpipe and on plenty of integrated GPUs, and 5 of the 8 backgrounds in
-                    # the default theme are over it.
-                    #
-                    # sourceSize caps what Qt decodes to. Setting only the width keeps the
-                    # aspect ratio, and 4096 is wider than any display this would be shown on,
-                    # so there is no visible loss -- and every machine decodes less. A plain
-                    # constant rather than anything derived from Screen: Screen is an attached
-                    # property that does not resolve inside an Image, and a QML error here
-                    # would take out the whole background rather than just the size hint.
-                    #
-                    # displayedBackground dropped from this loop (#1153): the 1153 patch above
-                    # replaces that layer's Image with a BackgroundMedia, which draws through
-                    # its own Image with its own sourceSize.width, retargeted just below. The
-                    # transition layers (oldBackground, incomingBackground) are untouched by
-                    # that patch and still match here.
-                    for prop in oldBackground incomingBackground; do
-                      substituteInPlace $out/share/omarchy/shell/plugins/background/Background.qml \
-                        --replace-fail \
-                          "source: root.imageUrl(root.$prop)" \
-                          "source: root.imageUrl(root.$prop)
-                        sourceSize.width: 4096"
-                    done
-
-                    # The base layer's own cap (#1153): BackgroundMedia.qml's still-image
-                    # branch only sets sourceSize once a cache-busting version is in play,
-                    # leaving the common, unversioned case at 0 -- Qt then decodes at full
-                    # size, the black-background failure the loop above exists to avoid.
-                    substituteInPlace $out/share/omarchy/shell/Ui/BackgroundMedia.qml \
-                      --replace-fail \
-                        'sourceSize.width: root.version > 0 ? width : 0' \
-                        'sourceSize.width: root.version > 0 ? width : 4096'
+                    # No wallpaper decode cap here: quattro decodes each background at
+                    # screen size (Background.qml decodeSize), which stays under the
+                    # 4096px GL_MAX_TEXTURE_SIZE that turned 7680px wallpapers black.
 
                     # Same store-mode problem as omarchy-theme-set, in a different script.
                     # omarchy-plugin-clone copies a first-party plugin out of $OMARCHY_PATH
@@ -643,11 +609,8 @@ stdenvNoCC.mkDerivation {
                         'google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium*) ;;' \
                         'google-chrome* | brave* | microsoft-edge* | opera* | vivaldi* | helium* | chromium*) ;;'
 
-                    # Why: pkgs/AGENTS.md#the-web-app-keybinding-upstream-breaks-and-the-one-word-fix
-                    substituteInPlace $out/share/omarchy/bin/omarchy-launch-webapp \
-                      --replace-fail \
-                        'browser=$(xdg-settings get default-web-browser)' \
-                        'browser=$(env -u BROWSER xdg-settings get default-web-browser)'
+                    # No $BROWSER edit: quattro's omarchy-cmd-default-browser runs
+                    # xdg-settings under `env -u BROWSER` itself.
 
                     # omarchy-launch-webapp and omarchy-launch-browser find the browser by
                     # reading its .desktop out of {~/.local,~/.nix-profile,/usr}/share/
@@ -783,7 +746,7 @@ stdenvNoCC.mkDerivation {
                 # "Restart to finish the update" was going to be the answer every time.
                 #
                 # Upstream decides whether the kernel changed by walking
-                # /usr/lib/modules/*/vmlinuz and asking pacman who owns each one. Here the
+                # $kernel_modules_path/*/modules.builtin and asking pacman who owns each. Here the
                 # glob matches nothing, so the loop never runs and kernel_updated keeps the
                 # `true` it was initialised with -- a reboot prompt after every update,
                 # whether or not anything needing one changed.
@@ -792,7 +755,7 @@ stdenvNoCC.mkDerivation {
                 # is what is running and /run/current-system is what is activated, so the
                 # kernels differing is precisely "you are not running what you installed".
                 substituteInPlace $out/share/omarchy/bin/omarchy-update-restart \
-                  --replace-fail 'for kernel in /usr/lib/modules/*/vmlinuz; do' \
+                  --replace-fail 'for kernel in "$kernel_modules_path"/*/modules.builtin; do' \
                   'for kernel in /run/current-system/kernel; do' \
                   --replace-fail 'if [[ -f $kernel ]] && pacman -Qo "$kernel" &>/dev/null; then' \
                   'if [[ -e $kernel ]]; then
@@ -885,19 +848,8 @@ stdenvNoCC.mkDerivation {
                   --replace-fail '/usr/bin/fprintd-list' \
                   '/run/current-system/sw/bin/fprintd-list'
 
-                # The two image-editor call sites that hardcode tensaku-edit, which
-                # is not packaged anywhere here -- see the satty-edit wrapper in the
-                # runtime dependencies above for why a wrapper and not satty itself.
-                #
-                # The third, omarchy-capture-screenshot, is deliberately NOT patched:
-                # it reads OMARCHY_SCREENSHOT_EDITOR, and the modules set that. Using
-                # upstream's own knob leaves one less patch to re-anchor on a bump.
-                substituteInPlace $out/share/omarchy/bin/omarchy-clipboard-open \
-                  --replace-fail 'exec tensaku-edit "$path"' \
-                  'exec satty-edit "$path"'
-                substituteInPlace $out/share/omarchy/config/imv/config \
-                  --replace-fail 'exec tensaku-edit "$imv_current_file"' \
-                  'exec satty-edit "$imv_current_file"'
+                # quattro routes both former tensaku-edit call sites through omasnap,
+                # which is in the runtime list above, so neither needs a patch.
 
                 # 1Password'"'"'s Chromium extension, installed the way NixOS installs one.
                 #
@@ -961,12 +913,8 @@ stdenvNoCC.mkDerivation {
             # handing uwsm-app an --app= flag to run as a program. The message it
             # produced named the URL, which reads like the URL is at fault.
             substituteInPlace $out/share/omarchy/bin/omarchy-launch-webapp \
-              --replace-fail 'exec setsid uwsm-app -- $(sed -n' \
-              'browser_bin=$(sed -n' \
-              --replace-fail "| head -1) --app=\"\$1\" \"\''${@:2}\"" \
-              '| head -1)
-
-        if [ -z "$browser_bin" ]; then
+              --replace-fail 'if ! omarchy-cmd-browser-handoff "$browser_exec" --app=' \
+              'if [ -z "$browser_exec" ]; then
           echo "omarchy-launch-webapp: no browser found for $browser." >&2
           echo "Set one with: xdg-settings set default-web-browser <name>.desktop" >&2
           echo "Installed browsers:" >&2
@@ -977,7 +925,7 @@ stdenvNoCC.mkDerivation {
           exit 1
         fi
 
-        exec setsid uwsm-app -- "$browser_bin" --app="$1" "''${@:2}"'
+        if ! omarchy-cmd-browser-handoff "$browser_exec" --app='
 
             # Why: pkgs/AGENTS.md#the-browser-theme-policy-and-why-402-broke-it
             #
@@ -1141,26 +1089,13 @@ stdenvNoCC.mkDerivation {
                     # never ticks, which reads as "that agent is not installed".
                     # The direction that would matter -- ticking for an agent that
                     # is absent -- is the one this loop exists to prevent.
-                    for a in claude codex copilot crush cursor-agent gemini grok hermes muse omp openclaw opencode pi; do
+                    for a in agy claude codex copilot crush cursor-agent grok hermes kimi muse omp openclaw opencode ori pi; do
                       substituteInPlace $menu \
                         --replace-fail "== \\\"$a\\\" ]]" "== \\\"$a\\\" ]] && command -v $a >/dev/null"
                     done
 
-                    # Antigravity has no row upstream: Google released it after this
-                    # Omarchy version, deprecating gemini-cli in its favour. Its command is
-                    # `agy` rather than its id, so it is written out rather than folded into
-                    # the loop.
-                    #
-                    # The row comes from a file rather than from an inline string. Spelling
-                    # one line of JSON, containing shell, inside awk, inside bash, inside a
-                    # Nix string needs four levels of quoting agreeing with each other; the
-                    # first attempt produced `\&\&` in the JSON and a literal backslash-n
-                    # where a newline belonged. builtins.toFile has exactly one level.
-                    ${gawk}/bin/awk -v rowfile=${antigravityMenuRow} '
-                      BEGIN { getline row < rowfile }
-                      !ins && /"setup\.default\.agent\.claude":/ { print row; ins = 1 }
-                      { print }
-                    ' $menu > $menu.new && mv $menu.new $menu
+                    # quattro ships its own Antigravity row, id agy, which the loop above
+                    # install-checks like every other agent.
 
                     # The Ask group, inserted before the Trigger row it belongs under
                     # so it reads in menu order. Same file-not-inline reasoning.
@@ -1202,7 +1137,7 @@ stdenvNoCC.mkDerivation {
                     # "Unsupported default agent" rather than an agent.
                     substituteInPlace $out/share/omarchy/bin/omarchy-agent \
                       --replace-fail 'agent=$(omarchy-default-agent)' '[ -d "$HOME/.local/share/mise/shims" ] && PATH="$HOME/.local/share/mise/shims:$PATH"; agent=$(omarchy-default-agent)' \
-                      --replace-fail 'omp)' 'antigravity) command=(agy) ;; omp)'
+                      --replace-fail 'omp)' 'antigravity) command=(agy --dangerously-skip-permissions) ;; omp)'
 
                     # Every --replace-fail pattern AND replacement below is a single line
                     # on purpose. `nix fmt` re-indents multi-line strings inside this
@@ -1240,8 +1175,8 @@ stdenvNoCC.mkDerivation {
                     # that runs before it. Marked inert rather than deleted: an agent that
                     # sees the name mentioned upstream should find out here that it is dead.
                     substituteInPlace $skills/nixarchy/hooks.md \
-                      --replace-fail '├── pre-refresh-pacman.d/   # Before `omarchy refresh pacman` re-syncs packages' '├── pre-refresh-pacman.d/   # Arch only — never runs on NixOS' \
-                      --replace-fail '├── post-update.d/          # During `omarchy update`, after system packages and migrations' '├── post-update.d/          # During `omarchy update`, i.e. after nixos-rebuild switch'
+                      --replace-fail '├── pre-refresh-pacman.d/   # After `omarchy refresh pacman` re-syncs the package config, before it updates packages' '├── pre-refresh-pacman.d/   # Arch only — never runs on NixOS' \
+                      --replace-fail '├── post-update.d/          # At the end of `omarchy update`, after privileged work' '├── post-update.d/          # During `omarchy update`, i.e. after nixos-rebuild switch'
 
                     # The crash skill is upstream's and mostly distro-neutral; three claims
                     # are not. Arch'"'"'s debuginfod does not serve nixpkgs builds, "recent
@@ -1275,11 +1210,11 @@ stdenvNoCC.mkDerivation {
                       --replace-fail 'Omarchy'"'"'s own packaging or configuration is implicated.' 'Nixarchy'"'"'s or Omarchy'"'"'s own packaging or configuration is implicated.' \
                       --replace-fail 'If it is not Omarchy'"'"'s, say so and stop. Suggesting the right upstream project is' 'If it belongs to neither, say so and stop. Suggesting the right upstream project is' \
                       --replace-fail '1. **It is a verified bug in Omarchy'"'"'s sphere**, established on evidence. Issues' '1. **It is a verified bug in Nixarchy'"'"'s or Omarchy'"'"'s sphere**, established on evidence. Issues' \
-                      --replace-fail 'gh search issues --repo basecamp/omarchy "<program> crash"' 'gh search issues --repo olafkfreund/nixarchy "<program> crash"' \
-                      --replace-fail 'gh issue list --repo basecamp/omarchy --state all --search "<signal> <program>"' 'gh issue list --repo olafkfreund/nixarchy --state all --search "<signal> <program>"' \
-                      --replace-fail 'gh issue view <number> --repo basecamp/omarchy --comments' 'gh issue view <number> --repo olafkfreund/nixarchy --comments' \
-                      --replace-fail 'gh issue comment <number> --repo basecamp/omarchy --body "..."' 'gh issue comment <number> --repo olafkfreund/nixarchy --body "..."' \
-                      --replace-fail 'gh issue create --repo basecamp/omarchy --title "..." --body "..."' 'gh issue create --repo olafkfreund/nixarchy --title "..." --body "..."'
+                      --replace-fail 'gh search issues --repo omacom/omarchy "<program> crash"' 'gh search issues --repo olafkfreund/nixarchy "<program> crash"' \
+                      --replace-fail 'gh issue list --repo omacom/omarchy --state all --search "<signal> <program>"' 'gh issue list --repo olafkfreund/nixarchy --state all --search "<signal> <program>"' \
+                      --replace-fail 'gh issue view <number> --repo omacom/omarchy --comments' 'gh issue view <number> --repo olafkfreund/nixarchy --comments' \
+                      --replace-fail 'gh issue comment <number> --repo omacom/omarchy --body "..."' 'gh issue comment <number> --repo olafkfreund/nixarchy --body "..."' \
+                      --replace-fail 'gh issue create --repo omacom/omarchy --title "..." --body "..."' 'gh issue create --repo olafkfreund/nixarchy --title "..." --body "..."'
 
                     # The agent-room half of the same file (#271): a search beside the gh
                     # search, and closing the loop after filing -- the two sections live in
@@ -1357,7 +1292,6 @@ stdenvNoCC.mkDerivation {
                     for pair in \
                       omarchy-setup-security-fido2:setup_pam_config \
                       omarchy-setup-security-fingerprint:setup_pam_config \
-                      omarchy-setup-security-fingerprint:setup_lock_fingerprint_pam \
                       omarchy-remove-security-fido2:remove_pam_config \
                       omarchy-remove-security-fingerprint:remove_pam_config; do
                       grep -q "^''${pair#*:}() {$" "$pambin/''${pair%%:*}" || {
@@ -1367,13 +1301,12 @@ stdenvNoCC.mkDerivation {
                     done
                     sed -i \
                       -e '/^setup_pam_config() {$/,/^}$/d' \
-                      -e '/^setup_lock_fingerprint_pam() {$/,/^}$/d' \
                       $pambin/omarchy-setup-security-fido2 \
                       $pambin/omarchy-setup-security-fingerprint
                     sed -i '/^remove_pam_config() {$/,/^}$/d' \
                       $pambin/omarchy-remove-security-fido2 \
                       $pambin/omarchy-remove-security-fingerprint
-                    ! grep -q '^\(setup_pam_config\|setup_lock_fingerprint_pam\|remove_pam_config\)() {$' \
+                    ! grep -q '^\(setup_pam_config\|remove_pam_config\)() {$' \
                       $pambin/omarchy-{setup,remove}-security-{fido2,fingerprint} || {
                       echo "a PAM-editing function survived its sed range delete" >&2
                       exit 1
@@ -1416,8 +1349,7 @@ stdenvNoCC.mkDerivation {
                         echo "    security.pam.services.hyprlock.fprintAuth = true;" >&2
                         echo "" >&2
                         echo "  then: sudo nixos-rebuild switch --flake <your-flake>" >&2
-                        exit 1' \
-                      --replace-fail 'setup_lock_fingerprint_pam' ':'
+                        exit 1'
 
                     # The removal side says the same thing in one breath. Both keep
                     # everything else they do -- dropping the packages, and in the
@@ -1713,7 +1645,7 @@ stdenvNoCC.mkDerivation {
                     # it may have gained a callback, or fixed something we are now
                     # carrying a copy of. There is no way to notice that automatically, so
                     # the build stops and asks.
-                    echo "7f4c1e615759eb72b0787e15b20d06a6b90aa460063227394390f4832322a0fe  ${src}/default/plymouth/omarchy.script" \
+                    echo "908adf752b05afdb2f5b0fe08fa81bf76963baf88aa67860610e3b6391f5725d  ${src}/default/plymouth/omarchy.script" \
                       | sha256sum -c - > /dev/null || {
                       echo "plymouth: upstream's omarchy.script changed." >&2
                       echo "plymouth: read it against nixarchy-plymouth.script, take what" >&2
@@ -1810,8 +1742,8 @@ stdenvNoCC.mkDerivation {
                     # and leaving rebuilds invisible again.
                     substituteInPlace $out/share/omarchy/shell/plugins/bar/widgets/Indicators.qml \
                       --replace-fail \
-                      '[ "Dictation", "ScreenRecording", "Reminder", "NightLight", "Dnd", "StayAwake" ]' \
-                      '[ "SystemSwitch", "Dictation", "ScreenRecording", "Reminder", "NightLight", "Dnd", "StayAwake" ]'
+                      '[ "PasswordlessSudo", "ScreenRecording", "RemoteSession", "Reminder", "NightLight", "Dnd", "StayAwake" ]' \
+                      '[ "SystemSwitch", "PasswordlessSudo", "ScreenRecording", "RemoteSession", "Reminder", "NightLight", "Dnd", "StayAwake" ]'
 
                     # The shell can open a panel and cannot say whether one is
                     # open, so anything driving the desktop -- a script, or an
@@ -1986,23 +1918,8 @@ stdenvNoCC.mkDerivation {
                       'fi')
                     substituteInPlace "$restartBin" --replace-fail "$relaunchOld" "$relaunchNew"
 
-                    # Why: pkgs/AGENTS.md#omarchy-restart-shell-waits-for-the-old-shell-to-be-gone-953
-                    killOld='while timeout 5 quickshell kill -p "$CONFIG_DIR" --any-display >/dev/null 2>&1; do :; done'
-                    killNew=$(printf '%s\n' \
-                      '# nixarchy CARRIED patch (#953): wait until no instance of this config remains.' \
-                      '# `timeout 5` gave up on a slow teardown, the launch below lost the race with' \
-                      '# the dying shell ("already running"), and the desktop was left with none.' \
-                      'exit_wait=''${OMARCHY_SHELL_EXIT_TIMEOUT:-60}' \
-                      'exit_deadline=$((SECONDS + exit_wait))' \
-                      '# Captured, not piped into grep -q: that can fail on a match (#1058).' \
-                      'while [[ $(quickshell list -p "$CONFIG_DIR" --any-display 2>/dev/null) == *"Process ID:"* ]]; do' \
-                      '  if (( SECONDS >= exit_deadline )); then' \
-                      '    echo "Omarchy shell did not exit within ''${exit_wait}s; not starting a second one." >&2' \
-                      '    exit 1' \
-                      '  fi' \
-                      '  timeout 5 quickshell kill -p "$CONFIG_DIR" --any-display >/dev/null 2>&1 || sleep 0.2' \
-                      'done')
-                    substituteInPlace "$restartBin" --replace-fail "$killOld" "$killNew"
+                    # No #953 kill-loop patch: quattro's omarchy-restart-shell gives each kill
+                    # 30 s and then waits for the instance to be gone before relaunching.
                     readyOld='for (( attempt = 0; attempt < 20; attempt++ )); do'
                     readyNew=$(printf '%s\n' \
                       '# nixarchy CARRIED patch (#953): a plugin-heavy shell takes 30-60 s to answer.' \
@@ -2049,15 +1966,8 @@ stdenvNoCC.mkDerivation {
                       --replace-fail '"$seconds" omarchy-shell "$@"' \
                       "\"\$seconds\" $out/bin/omarchy-shell \"\$@\""
 
-                    # Any length or order change in a bar region -- one icon moved, one dragged
-                    # into a Bar Folder, one widget put or removed -- rebuilt every widget in that
-                    # region on every monitor (#901): Bar.qml handed each ModuleList Repeater a
-                    # fresh JS array, which QML never diffs. The patch keeps a keyed ListModel per
-                    # ModuleList (BarModel.syncEntries: move / insert / remove / set), so only the
-                    # affected slots are created or destroyed. checks.bar-keyed-sync runs the sync
-                    # against a real ListModel. CARRIED, and meant to be dropped with the rest of
-                    # #901; --fuzz=0 so any upstream change to these two files fails this build.
-                    patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./901-bar-keyed-layout.patch}
+                    # No #901 keyed-layout patch: quattro's ModuleList Repeater already uses a
+                    # keyed ScriptModel (objectProp "key"), the fix that patch carried.
 
                     # A notification its sender closes stayed on screen -- for ever, if critical
                     # (#1032). CARRIED until omacom/omarchy fixes the same handler; --fuzz=0 so
@@ -2082,7 +1992,7 @@ stdenvNoCC.mkDerivation {
                     # them and nobody's edited bindings.lua is touched. Appended after
                     # upstream's last line, asserted first so a reworded seed fails here.
                     binds=$out/share/omarchy/config/hypr/bindings.lua
-                    [ "$(tail -n1 "$binds")" = '-- o.bind("SUPER + PERIOD", nil, "omarchy-shell shell toggle omarchy.emojis")' ] || {
+                    [ "$(tail -n1 "$binds")" = '-- o.bind("SUPER + PERIOD", nil, { panel = "omarchy.emojis" })' ] || {
                       echo "default-plugin binds: upstream's seed bindings.lua no longer ends where it did" >&2
                       exit 1
                     }

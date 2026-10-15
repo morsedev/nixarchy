@@ -851,6 +851,7 @@
           omawrite = final.callPackage ./pkgs/apps/omawrite.nix { };
           omacalc = final.callPackage ./pkgs/apps/omacalc.nix { };
           omacut = final.callPackage ./pkgs/apps/omacut.nix { };
+          omasnap = final.callPackage ./pkgs/apps/omasnap.nix { };
 
           # owe, omacom's wallpaper engine: video and GIF desktop backgrounds
           # and the lock screen's video feed. Not in nixpkgs. #1153.
@@ -958,7 +959,7 @@
           # The screensaver's text-effects engine, packaged in this repo rather
           # than nixpkgs. Passed explicitly for the same reason hyprland is: it
           # lives under nixarchy-apps, which callPackage does not search.
-          inherit (final.nixarchy-apps) ttfx;
+          inherit (final.nixarchy-apps) ttfx omasnap;
         };
 
         # Why: docs/internals/flake.md#the-boot-splash-and-nothing-else-on-the-disk-with-
@@ -1312,6 +1313,7 @@
             omawrite
             omacalc
             omacut
+            omasnap
             owe
             aether
             ttfx
