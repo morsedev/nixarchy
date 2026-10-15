@@ -694,6 +694,11 @@ let
         "setup.security.passwordless-sudo" = {
           when = "false";
         };
+        # quattro's Setup > Direct Boot writes a Limine entry for EFI direct
+        # boot. NixOS owns the bootloader (boot.loader.*), so it is hidden (#1278).
+        "setup.direct-boot" = {
+          when = "false";
+        };
 
         # The Arch wiki is the wrong manual on a NixOS host. All three wear
         # nf-linux-nixos (U+F1105), the snowflake -- the icon and label are
