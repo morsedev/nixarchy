@@ -28,6 +28,8 @@
 {
   # Actions, not applications.
   "install.aur" = "an Arch package manager. There is no NixOS equivalent to map.";
+  # quattro's Install > AI > Claude Desktop (#1278).
+  "install.ai.claude" = "Claude Desktop: nixpkgs has no claude-desktop package (checked 2026-10-15). The Claude Code agent is in the Default Agent menu.";
   "install.package" = "installs an arbitrary named package; the row IS the mechanism.";
   "install.preinstalls" =
     "re-runs Omarchy's own preinstall set, which this port expresses as modules.";

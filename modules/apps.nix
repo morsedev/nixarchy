@@ -678,6 +678,18 @@ let
           when = "false";
         };
 
+        # quattro's Ollama rows (#1278). Ollama here is services.ollama under
+        # programs.nixarchy.localAi, so Install opens Local AI, and upstream's
+        # Uninstall -- `sudo systemctl disable --now ollama.service` -- is
+        # hidden: on NixOS that lasts only until the next switch.
+        "install.ai.ollama" = {
+          action = "omarchy-launch-floating-terminal-with-presentation nixarchy-local-ai";
+          description = "Set up a local model through programs.nixarchy.localAi";
+        };
+        "remove.ai.ollama" = {
+          when = "false";
+        };
+
         # The Arch wiki is the wrong manual on a NixOS host. All three wear
         # nf-linux-nixos (U+F1105), the snowflake -- the icon and label are
         # stated explicitly because the generator only carries upstream's
