@@ -1019,7 +1019,8 @@ let
       [ "$(basename "$entry")" = omarchy ] || ln -s "$entry" $out/default/
     done
 
-    cp --no-preserve=mode "$src"/default/omarchy/* $out/default/omarchy/
+    # -r: quattro ships a directory here (sudo-no-update).
+    cp -r --no-preserve=mode "$src"/default/omarchy/* $out/default/omarchy/
     cp --no-preserve=mode ${menuDefaults} $out/default/omarchy/omarchy-menu.jsonc
   '';
 
