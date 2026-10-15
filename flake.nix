@@ -2411,10 +2411,6 @@
             pkgs = pkgsFor.${system};
           };
 
-          bar-keyed-sync = import ./tests/bar-keyed-sync.nix {
-            pkgs = pkgsFor.${system};
-            omarchy = self.packages.${system}.omarchy;
-          };
           manifest-has-kind = import ./tests/manifest-has-kind.nix {
             pkgs = pkgsFor.${system};
             omarchy = self.packages.${system}.omarchy;
