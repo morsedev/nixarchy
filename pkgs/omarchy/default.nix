@@ -436,11 +436,9 @@ stdenvNoCC.mkDerivation {
                     # substituteInPlace below targets the backported text rather
                     # than what this patch replaces. See the patch's own header,
                     # and pkgs/AGENTS.md, for what it carries and why.
-                    patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./1153-owe-video-backgrounds.patch}
 
                     # CARRIED (#1155): upstream's per-entry panel sync. Applied first so the
                     # #901 part-A edits below target the patched text.
-                    patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./1155-panel-loaders-kept.patch}
                     # CARRIED (#1192): the panel Loader's error handler called a function Qt 6's Loader lacks.
                     patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./1192-panel-loader-errorstring.patch}
 
