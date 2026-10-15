@@ -746,8 +746,8 @@
     allow = "systemctl-user";
   };
   "omarchy-lifecycle-dispatch" = {
-    class = "vendor";
-    reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
+    class = "patch";
+    reason = "Patched (#1278 edge): first-run reaches it at every login, so its clean PATH and env -i are pointed at /run/current-system/sw. The /usr left is the aarch64-apple implementation path, which x86_64 never selects.";
     pacman = "Reads a platform package's pacman record, but only aarch64-apple registers any operation: on x86_64 every operation, including first-run's setup-user, is a no-op before that read.";
   };
   "omarchy-provision-hardware" = {
@@ -765,5 +765,33 @@
     class = "vendor";
     reason = "Vendored unchanged. Reached only by upstream's remove.ai.ollama row, which modules/apps.nix hides: Ollama here is services.ollama under programs.nixarchy.localAi, and disabling its unit by hand would only last until the next switch.";
     allow = "systemctl-system";
+  };
+  "omarchy-font-cjk" = {
+    class = "patch";
+    reason = "Patched (#1278 edge): runs its stdlib-only Python helper with nixpkgs' python3, not /usr/bin/python3.";
+  };
+  "omarchy-hw-platform" = {
+    class = "patch";
+    reason = "Patched (#1278 edge): re-execs itself under /run/current-system/sw's env and bash with that PATH; /bin/bash and /usr/bin hold nothing here.";
+  };
+  "omarchy-input-method" = {
+    class = "patch";
+    reason = "Patched (#1278 edge): runs its stdlib-only Python helper with nixpkgs' python3, not /usr/bin/python3.";
+  };
+  "omarchy-language" = {
+    class = "patch";
+    reason = "Patched (#1278 edge): its Python helper runs with nixpkgs' python3. Locale generation itself has no NixOS port yet (#1280).";
+  };
+  "omarchy-setup-input" = {
+    class = "patch";
+    reason = "Patched (#1278 edge): runs its stdlib-only Python helper with nixpkgs' python3, not /usr/bin/python3.";
+  };
+  "omarchy-setup-keyboard" = {
+    class = "patch";
+    reason = "Patched (#1278 edge): runs its stdlib-only Python helper with nixpkgs' python3, not /usr/bin/python3.";
+  };
+  "omarchy-theme-set-fcitx5" = {
+    class = "patch";
+    reason = "Patched (#1278 edge): the packaged fcitx5 theme default points at /run/current-system/sw/share.";
   };
 }
