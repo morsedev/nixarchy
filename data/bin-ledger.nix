@@ -159,10 +159,6 @@
     reason = "It tests for the LSP limiter at a fixed path under /usr/lib/lv2. NixOS keeps LV2 plugins in the store and points hosts at them with LV2_PATH, so the search is over LV2_PATH and the system profile.";
     allow = "systemctl-user";
   };
-  "omarchy-bar-text-color" = {
-    class = "patch";
-    reason = "Part of the #1153 video-backgrounds backport (omacom/omarchy #6792, #12429), carried as a patch: ImageMagick now samples the file's first frame only ([0]), since a GIF or video background otherwise decodes every frame and the colour match falls into the fallback. Deleted by the quattro bump, with the rest of that patch.";
-  };
   "omarchy-bluetooth-device" = {
     class = "patch";
     reason = "Upstream pairs without an agent lifecycle. For #1085, the pair action starts a temporary NoInputNoOutput bt-agent, waits until the adapter is pairable, then stops that agent after pairing and trust but before connect; the other actions keep upstream behavior.";
@@ -181,10 +177,6 @@
     class = "vendor";
     reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
     pacman = "Update, channel, keyring and mirror plumbing. Unreachable here because pkgs/omarchy/nix-bin replaces the entry points the UI calls -- omarchy-update and omarchy-update-available.";
-  };
-  "omarchy-clipboard-open" = {
-    class = "patch";
-    reason = "It execs tensaku-edit, which is packaged nowhere here, so the image editor is pointed at the satty-edit wrapper instead.";
   };
   "omarchy-cursor-set" = {
     class = "new";
@@ -264,11 +256,6 @@
     class = "patch";
     reason = "It looks in /usr/share/vulkan/icd.d, which does not exist on NixOS -- hardware.graphics puts the ICD manifests under /run/opengl-driver -- so it answered no Vulkan on every machine.";
   };
-  "omarchy-install-ai-hermes" = {
-    class = "vendor";
-    reason = "Vendored unchanged. Stops omarchy-hermes-theme.service before reinstalling; stopping a user unit is session state and carries no configuration.";
-    allow = "systemctl-user";
-  };
   "omarchy-install-font" = {
     class = "replace";
     reason = "Upstream runs `omarchy-pkg-add <package> && sleep 2 && omarchy-font-set`, so the && meant the switch never ran either. Asks fontconfig first, and defers to omarchy-pkg-add only if the family is absent.";
@@ -330,10 +317,6 @@
   "omarchy-menu" = {
     class = "patch";
     reason = "`close` asks the menu to dismiss() over `shell call` before falling back to upstream's `shell hide`: hide reaches the menu's close(), which nixarchy-menu turns into dictation when voice is on (the hotkey's second tap), so a script that closed the menu started a recording (#1070). `call` exits 0 with \"unknown\" when the enabled menu has no dismiss(), so the reply is matched, not the status.";
-  };
-  "omarchy-menu-images" = {
-    class = "patch";
-    reason = "Part of the #1153 video-backgrounds backport (omacom/omarchy #6792, #12429), carried as a patch: the image picker now lists video files too, thumbnailed with ffmpegthumbnailer (a separate, narrower-concurrency queue from vipsthumbnail's) rather than Qt's Image, with a per-file failure cache so one bad video does not retry every open. Needs ffmpegthumbnailer, already in pkgs/omarchy/default.nix runtimeDeps (first for Nautilus). Deleted by the quattro bump, with the rest of that patch.";
   };
   "omarchy-menu-keybindings" = {
     class = "patch";
@@ -475,11 +458,6 @@
     reason = "It writes chromium.desktop as the fallback default browser, a name nixpkgs does not use, and its `|| true` swallowed the failure -- so removing Chrome left a default resolving to nothing.";
     allow = "etc-write";
   };
-  "omarchy-remove-dev-env" = {
-    class = "vendor";
-    reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
-    pacman = "A menu row modules/apps.nix overrides away, so nothing on this system reaches the pacman path inside it.";
-  };
   "omarchy-remove-gaming-xbox-controllers" = {
     class = "vendor";
     reason = "Vendored unchanged. Deletes the /etc/modprobe.d and /etc/modules-load.d files omarchy-install-gaming-xbox-controllers wrote. Neither exists here, because both settings are declarative.";
@@ -597,14 +575,6 @@
     reason = "Vendored unchanged. Runs as root from a sysinit unit and clears machine identity: userdel, the /etc/ssh host keys, NetworkManager connections, the sddm autologin drop-in and /etc/machine-id. Most of those paths are generated on NixOS, and the unit it removes itself from does not exist here.";
     allow = "account-tools etc-write";
   };
-  "omarchy-theme-bg-next" = {
-    class = "patch";
-    reason = "Part of the #1153 video-backgrounds backport (omacom/omarchy #6792, #12429), carried as a patch: the cycle-through-backgrounds find now matches video extensions (mp4, m4v, mov, webm, mkv, avi) alongside the still-image ones. Deleted by the quattro bump, with the rest of that patch.";
-  };
-  "omarchy-theme-bg-set" = {
-    class = "patch";
-    reason = "Part of the #1153 video-backgrounds backport, carried as a patch: usage text and the summary/args metadata comment say \"media\" rather than \"image\", since this now accepts a video or GIF path too. Deleted by the quattro bump, with the rest of that patch.";
-  };
   "omarchy-theme-set" = {
     class = "patch";
     reason = "Three edits: `cp -r` from $OMARCHY_THEMES_PATH preserves the store's read-only directory modes, so the next switch cannot clean up; omarchy-theme-set-zed is appended, which upstream has no equivalent of; and the #1153 video-backgrounds backport (omacom/omarchy #6792, #12429) adds is_video_path and the staged-background lookups it needs, carried as a patch and deleted by the quattro bump with the rest of it.";
@@ -620,10 +590,6 @@
   "omarchy-theme-set-zed" = {
     class = "new";
     reason = "Not in upstream, which ships theme setters for vscode, obsidian and others but none for Zed, pointing at the AUR's omazed instead -- which cannot work on v4. Reads the palette from colors.toml.";
-  };
-  "omarchy-theme-switcher" = {
-    class = "patch";
-    reason = "Part of the #1153 video-backgrounds backport (omacom/omarchy #6792, #12429), carried as a patch: theme-preview lookup and caching now also match video extensions (mp4, m4v, mov, webm, mkv, avi), so a theme whose preview or first background is a video still gets one in the switcher. Deleted by the quattro bump, with the rest of that patch.";
   };
   "omarchy-toggle-crash-capture" = {
     class = "vendor";
@@ -712,11 +678,6 @@
     class = "replace";
     reason = "Upstream runs `voxtype configure` in a floating terminal. voxtype is opt-in here, so the bar's Dictation click produced `voxtype: command not found`; this says how to enable it instead.";
   };
-  "omarchy-voxtype-remove" = {
-    class = "vendor";
-    reason = "Vendored unchanged. Disables voxtype.service, a user unit installed under the user's own tree.";
-    allow = "systemctl-user";
-  };
   "omarchy-windows-vm" = {
     class = "vendor";
     reason = "Vendored unchanged, and the modprobe match is prose: the two `sudo modprobe kvm-*` lines are inside the help text printed when KVM is unavailable, which comment-stripping cannot see. modules/nixos.nix loads the KVM modules declaratively.";
@@ -738,5 +699,71 @@
   "omarchy-system-sleep-lock" = {
     class = "patch";
     reason = "Use the packaged IPC helper so a long-lived monitor can lock a shell from either generation without following stale PATH entries.";
+  };
+  "omarchy-dictation-superwhisper" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Asks whether superwhisper.service, a user unit, is active before toggling it: session state, no configuration.";
+    allow = "systemctl-user";
+  };
+  "omarchy-install-dictation-voxtype" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Enables voxtype.service, a user unit the install writes under the user's own tree.";
+    allow = "systemctl-user";
+  };
+  "omarchy-install-hermes-cli" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Stops omarchy-hermes-theme.service before reinstalling; stopping a user unit is session state and carries no configuration.";
+    allow = "systemctl-user";
+  };
+  "omarchy-install-openclaw-cli" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Stops and checks openclaw-<role>.service user units around an upgrade: session state, no configuration.";
+    allow = "systemctl-user";
+  };
+  "omarchy-remove-dictation-superwhisper" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Disables superwhisper.service, a user unit installed under the user's own tree, and asks whether fcitx5 is running.";
+    allow = "systemctl-user";
+  };
+  "omarchy-remove-dictation-voxtype" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Disables voxtype.service, a user unit installed under the user's own tree.";
+    allow = "systemctl-user";
+  };
+  "omarchy-remove-service-ssh-agent" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Disables the gcr-ssh-agent socket for this user; the enable symlink lives in the user's own tree, as on Arch.";
+    allow = "systemctl-user";
+  };
+  "omarchy-setup-security-ssh-agent" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Enables the gcr-ssh-agent socket for this user; the enable symlink lives in the user's own tree, as on Arch.";
+    allow = "systemctl-user";
+  };
+  "omarchy-system-lid-inhibit" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Starts and stops its own transient user unit to hold a lid-switch inhibitor: session state, no configuration.";
+    allow = "systemctl-user";
+  };
+  "omarchy-lifecycle-dispatch" = {
+    class = "vendor";
+    reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
+    pacman = "Reads a platform package's pacman record, but only aarch64-apple registers any operation: on x86_64 every operation, including first-run's setup-user, is a no-op before that read.";
+  };
+  "omarchy-provision-hardware" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Finishes hardware setup an Omarchy image build deferred; reached only from omarchy-apply-hardware, which only the ISO's provisioning service and omarchy-apply-system call. nixarchy runs neither.";
+    pacman = "The image build's keyring and package steps, on the same unreachable path.";
+    allow = "initrd-boot modprobe";
+  };
+  "omarchy-update-pacman" = {
+    class = "vendor";
+    reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
+    pacman = "Called only by omarchy-update-system-pkgs, -refresh-pacman, -reinstall-pkgs and -channel-set. pkgs/omarchy/nix-bin replaces the update entry points and modules/apps.nix overrides the Channel rows, so none reaches it.";
+  };
+  "omarchy-remove-ai-ollama" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Reached only by upstream's remove.ai.ollama row, which modules/apps.nix hides: Ollama here is services.ollama under programs.nixarchy.localAi, and disabling its unit by hand would only last until the next switch.";
+    allow = "systemctl-system";
   };
 }
