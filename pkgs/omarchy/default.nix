@@ -1375,9 +1375,10 @@ stdenvNoCC.mkDerivation {
                       omarchy-setup-security-fido2:setup_pam_config \
                       omarchy-setup-security-fingerprint:setup_pam_config \
                       omarchy-remove-security-fido2:remove_pam_config \
-                      omarchy-remove-security-fingerprint:remove_pam_config; do
+                      omarchy-remove-security-fingerprint:remove_pam_config \
+                      omarchy-remove-security-fingerprint:remove_resume_hook; do
                       grep -q "^''${pair#*:}() {$" "$pambin/''${pair%%:*}" || {
-                        echo "''${pair%%:*} no longer defines ''${pair#*:}() where the PAM patch expects it" >&2
+                        echo "''${pair%%:*} no longer defines ''${pair#*:}() where the patch below expects it" >&2
                         exit 1
                       }
                     done
@@ -1388,9 +1389,10 @@ stdenvNoCC.mkDerivation {
                     sed -i '/^remove_pam_config() {$/,/^}$/d' \
                       $pambin/omarchy-remove-security-fido2 \
                       $pambin/omarchy-remove-security-fingerprint
-                    ! grep -q '^\(setup_pam_config\|remove_pam_config\)() {$' \
+                    sed -i '/^remove_resume_hook() {$/,/^}$/d' $pambin/omarchy-remove-security-fingerprint
+                    ! grep -q '^\(setup_pam_config\|remove_pam_config\|remove_resume_hook\)() {$' \
                       $pambin/omarchy-{setup,remove}-security-{fido2,fingerprint} || {
-                      echo "a PAM-editing function survived its sed range delete" >&2
+                      echo "a function deleted above survived its sed range delete" >&2
                       exit 1
                     }
 
@@ -1450,7 +1452,8 @@ stdenvNoCC.mkDerivation {
                         'echo "PAM is configured by your NixOS build, so there is nothing to unpick" >&2
                         echo "in /etc/pam.d. Drop the fprintAuth lines and services.fprintd from" >&2
                         echo "your configuration and rebuild." >&2
-                        echo "" >&2'
+                        echo "" >&2' \
+                      --replace-fail 'remove_resume_hook' ':' # the build declares the resume restart (#1288), so there is nothing to remove
 
                     # The drift guard for all four: if an upstream release moves these edits
                     # into a script this does not name, the build stops here rather than

@@ -1873,9 +1873,6 @@ pkgs.testers.runNixOSTest {
                # pacman shim and says so. Patching the paths would point at
                # files that do not exist either.
                "omarchy-install-ai-hermes",
-               # quattro (edge, #1278): removing a fingerprint edits
-               # /etc/pam.d/sudo in place, which NixOS generates (#1280).
-               "omarchy-remove-security-fingerprint",
                # Hardened privileged helpers that pin /usr/bin binaries. Their
                # callers are upstream's update, pacman and channel flows, which
                # nixarchy replaces, and the passwordless-sudo row edge hides; so

@@ -472,7 +472,7 @@
   };
   "omarchy-remove-security-fingerprint" = {
     class = "patch";
-    reason = "Same PAM edit as omarchy-remove-security-fido2: `sed -i` over a symlink into /etc/static/pam.d detaches the stack. The function goes; dropping the packages and the omarchy-lock file stays.";
+    reason = "Two functions go. remove_pam_config seds /etc/pam.d/sudo, a symlink into /etc/static/pam.d that `sed -i` detaches, as in omarchy-remove-security-fido2. quattro's remove_resume_hook deletes a /usr/lib sleep hook and an fprintd drop-in the build declares instead (#1288), so here it has nothing to remove. Dropping the packages, the omarchy-lock file and the user's saved prints stays.";
     allow = "etc-write";
   };
   "omarchy-remove-security-sshd" = {
