@@ -2233,6 +2233,13 @@
             omarchy = self.packages.${system}.omarchy;
           };
 
+          # Edge carry (#1289): Setup > Language records a missing locale for
+          # the next rebuild instead of running locale-gen.
+          language-edge = import ./tests/language-edge.nix {
+            pkgs = pkgsFor.${system};
+            omarchy = self.packages.${system}.omarchy;
+          };
+
           # `nixarchy pkg new` against stub nix-init and nix: the draft is
           # kept when its build fails, the placeholder hash is filled in from
           # the failed build, and a reshaped apps.nix is printed at rather

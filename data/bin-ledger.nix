@@ -778,9 +778,13 @@
     class = "patch";
     reason = "Patched (#1278 edge): runs its stdlib-only Python helper with nixpkgs' python3, not /usr/bin/python3.";
   };
+  "omarchy-locale-generate" = {
+    class = "patch";
+    reason = "Upstream uncomments /etc/locale.gen and runs locale-gen as root. NixOS builds locales with the system (i18n.extraLocales), so this refuses and names nixarchy-language-select (#1289).";
+  };
   "omarchy-language" = {
     class = "patch";
-    reason = "Patched (#1278 edge): its Python helper runs with nixpkgs' python3. Locale generation itself has no NixOS port yet (#1280).";
+    reason = "Patched (#1278 edge): its Python helper runs with nixpkgs' python3. A locale the system has not built is recorded with nixarchy-language-select for the next rebuild, and the switch stops before LANG changes, instead of running locale-gen as root (#1289).";
   };
   "omarchy-setup-input" = {
     class = "patch";

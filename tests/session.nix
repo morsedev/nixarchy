@@ -1797,10 +1797,8 @@ pkgs.testers.runNixOSTest {
                # pacman shim and says so. Patching the paths would point at
                # files that do not exist either.
                "omarchy-install-ai-hermes",
-               # quattro (edge, #1278). Reachable gaps, tracked in #1280: language
-               # switching generates locales at runtime (i18n.supportedLocales
-               # here), and the fingerprint resume hook lives in /usr/lib.
-               "omarchy-language", "omarchy-locale-generate",
+               # quattro (edge, #1278). Reachable gap, tracked in #1280: the
+               # fingerprint resume hook lives in /usr/lib.
                "omarchy-apply-lock", "omarchy-remove-security-fingerprint",
                # Hardened privileged helpers that pin /usr/bin binaries. Their
                # callers are upstream's update, pacman and channel flows, which

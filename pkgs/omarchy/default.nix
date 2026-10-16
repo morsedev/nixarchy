@@ -855,6 +855,29 @@ stdenvNoCC.mkDerivation {
                   substituteInPlace $out/share/omarchy/bin/$f \
                     --replace-fail '/usr/bin/python3' '${python3}/bin/python3'
                 done
+                # Setup > Language (#1289): a locale this system has not built is
+                # recorded for the next rebuild, never generated at runtime, and the
+                # script stops before LANG or the interface changes. The menu shows
+                # no stderr, hence the notification.
+                substituteInPlace $out/share/omarchy/bin/omarchy-language \
+                  --replace-fail 'generator=/usr/bin/omarchy-locale-generate' \
+                  'generator=$OMARCHY_PATH/bin/omarchy-locale-generate' \
+                  --replace-fail 'generate_locale() {' 'generate_locale() {
+                  local code=$1 locale=$2 msg
+                  locale_generated "$locale" && return
+                  nixarchy-language-select "$code" >/dev/null
+                  msg="$(name_for "$code") needs its locale built into the system. It is recorded in your configuration: apply it (Install > Apply changes, or nixarchy-apply), then choose it again."
+                  echo "$msg" >&2
+                  omarchy-notification-send "Language" "$msg" >/dev/null 2>&1 || true
+                  return 1
+                }
+                upstream_generate_locale() {'
+                # Its only caller is the function above replaced; a stray one gets a reason.
+                printf '%s\n' '#!/bin/bash' \
+                  '# omarchy:summary=Not used on NixOS: the system build makes locales (#1289)' \
+                  '# omarchy:hidden=true' \
+                  'echo "omarchy-locale-generate: NixOS builds locales with the system. Record a language with nixarchy-language-select <code>, then apply it." >&2' \
+                  'exit 1' >$out/share/omarchy/bin/omarchy-locale-generate
                 # The platform probe runs at every first login (first-run ->
                 # lifecycle-dispatch setup-user). It re-execs itself under a clean
                 # root-owned PATH; /bin/bash and /usr/bin hold nothing here.
