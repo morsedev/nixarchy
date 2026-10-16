@@ -847,6 +847,15 @@ stdenvNoCC.mkDerivation {
                 substituteInPlace $out/share/omarchy/bin/omarchy-apply-lock \
                   --replace-fail '/usr/bin/fprintd-list' \
                   '/run/current-system/sw/bin/fprintd-list'
+                # quattro (#1285): the fprintd resume hook and stop timeout are
+                # declared by modules/nixos.nix wherever fprintd is enabled, so
+                # the runtime copies into /usr/lib and /etc/systemd are dropped.
+                substituteInPlace $out/share/omarchy/bin/omarchy-apply-lock \
+                  --replace-fail 'resume_hook_dst=/usr/lib/systemd/system-sleep/fprintd-resume' "" \
+                  --replace-fail 'as_root install -Dm755 -o root -g root "$resume_hook_src" "$resume_hook_dst"' ":" \
+                  --replace-fail 'as_root install -Dm644 -o root -g root "$stop_timeout_src" "$stop_timeout_dst"' ":" \
+                  --replace-fail 'as_root rm -f /etc/pam.d/omarchy-lock-fingerprint "$resume_hook_dst"' \
+                  'as_root rm -f /etc/pam.d/omarchy-lock-fingerprint'
 
                 # quattro's /usr paths that a nixarchy session actually reaches (#1278).
                 # The input-method and font tools run stdlib-only Python helpers.
