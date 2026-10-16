@@ -48,7 +48,8 @@ made of, and which are on by default, is in [What works](#what-works) below.
 | **[Run the binary you just downloaded](https://olafkfreund.github.io/nixarchy/manual/python)** | `nix-ld`, `envfs` and AppImages, on by default — `nixarchy-doctor <binary>` names what is still missing |
 | **[Get this machine back](https://olafkfreund.github.io/nixarchy/manual/reinstall-image)** | `nixarchy reinstall iso` — an install image built from your own configuration |
 | **[One flake, many machines](https://olafkfreund.github.io/nixarchy/manual/many-machines)** | roll a change out to a fleet from one repository |
-| **[Stable or unstable](https://olafkfreund.github.io/nixarchy/manual/channels)** | `Update ▸ Channel`, per machine or per package |
+| **[Stable or unstable](https://olafkfreund.github.io/nixarchy/manual/channels)** | `Update ▸ Nixpkgs`: nixos-26.05 or unstable, per machine or per package |
+| **[Omarchy edge, or your own checkout](https://olafkfreund.github.io/nixarchy/manual/omarchy-channels)** | `Update ▸ Channel`: Omarchy's next release, built and booted here first, or your own checkout |
 | **[A toolchain per project](https://olafkfreund.github.io/nixarchy/manual/per-project-environments)** | `nixarchy dev init react`, or the panel on `Super+Alt+E` |
 | **[Your phone on the desktop](https://olafkfreund.github.io/nixarchy/manual/android)** | `nixarchy android`, mirrored or emulated |
 | **[The desktop from anywhere](https://olafkfreund.github.io/nixarchy/manual/remote-desktop)** | `gliff` between two Hyprland machines over SSH, installed by default with a bar widget that checks each machine; `hypr-rdp`, the running session over RDP |
@@ -292,6 +293,11 @@ Then, in order:
    Hyprland config, this is the step that matters -- see
    [what defers to you](https://olafkfreund.github.io/nixarchy/manual/configuration#on-a-machine-you-already-run).
 
+6. **Optional: choose an Omarchy channel.** Your `nixarchy.url` decides it:
+   `…/release` (stable releases), no branch (`main`), or `…/edge` (Omarchy's
+   development branch, tested here first). See
+   [Omarchy channels](https://olafkfreund.github.io/nixarchy/manual/omarchy-channels#on-a-nixos-machine-with-your-own-flake).
+
 What the doctor's three silent findings mean, what the module defers to your
 existing configuration, and keeping a `hyprland.lua` you already have:
 [Configuring nixarchy](https://olafkfreund.github.io/nixarchy/manual/configuration#on-a-machine-you-already-run).
@@ -492,7 +498,7 @@ is on [the site](https://olafkfreund.github.io/nixarchy/).
 | **Apps ▸ GitHub Actions** | repository workflow runs, jobs and steps in a panel ([nixarchy-ghtui](https://github.com/olafkfreund/nixarchy-ghtui)), with `gh`. **On by default**, Super+Alt+A on a new install; `programs.nixarchy.defaultPlugins.github = false` removes it |
 | **Apps ▸ Herdr** | your herdr sessions and their agents in the bar ([nixarchy-herdr](https://github.com/olafkfreund/nixarchy-herdr)), with `herdr`. **On by default**, Super+Alt+H on a new install; `programs.nixarchy.defaultPlugins.herdr = false` removes it |
 | **Install ▸ Apply changes** | the rebuild itself in a panel (`pkgs/rebuild-panel/`, shipped with nixarchy): it asks before it starts, then shows the elapsed time and the log tail while `nixarchy-rebuild` runs, and keeps the exit code and the log if it fails. Closing it does not stop the rebuild. **On by default**; its bar icon shows only while one is running — `programs.nixarchy.defaultPlugins.rebuild = false` removes it |
-| **Super+Space** | a palette over the whole menu ([nixarchy-menu](https://github.com/olafkfreund/nixarchy-menu)): apps, Omarchy's rows, sums, conversions, files, hotkeys, a hand-off to your agent. **On by default**; `defaultPlugins.menu = false` brings the stock menu back |
+| **Super+Space** | a palette over the whole menu ([nixarchy-menu](https://github.com/olafkfreund/nixarchy-menu)): apps, Omarchy's rows, sums, conversions, files, hotkeys, a hand-off to your agent. **Installed, off by default**: Omarchy's own menu is the default, and Setup ▸ Defaults ▸ Menu switches to the palette with no rebuild |
 | **Hyprforge** | every Hyprland setting, previewed live on your real windows ([Hyprforge](https://github.com/AbdulazizAlwabel/omarchy-hyprforge), by Aziz). **On by default**, and what it saves is what the session loads |
 | **Gliff-Manager** | your gliff machines in the bar: ready or not, headless or mirror, connect ([Gliff-Manager](https://github.com/28allday/Gliff-Manager), by Gavin Nugent, through [a NixOS-ready fork](https://github.com/olafkfreund/nixarchy-gliff-manager)). **On wherever nixarchy installs gliff** |
 | **Setup ▸ Plugins ▸ Add Plugin** | the plugin marketplace, audited in a sandbox before anything installs ([nixarchy-plugin-browser](https://github.com/olafkfreund/nixarchy-plugin-browser)). **On by default**, Super+Alt+U |
@@ -622,6 +628,38 @@ nix run .#review
 `data/apps.nix` — `attr` for a plain nixpkgs package, `option` for something
 that needs a NixOS module. The menu rewiring and its Remove row are generated
 from that entry.
+
+### Run Omarchy edge, or your own checkout
+
+Stable follows Omarchy's releases. Two other channels let you run ahead of
+them, chosen in **Update ▸ Channel** or from a terminal:
+
+```bash
+nixarchy channel omarchy edge          # Omarchy's quattro branch, built and booted here first
+nixarchy channel omarchy dev ~/omarchy # Omarchy from your own git checkout
+nixarchy channel omarchy stable        # back to the release
+```
+
+**Edge** is a nixarchy branch that moves at most once a day, and only after
+that day's `quattro` has built with every NixOS patch and booted three
+desktops. When upstream breaks something, edge stays put, and an
+[`omarchy-edge`](https://github.com/olafkfreund/nixarchy/issues?q=label%3Aomarchy-edge)
+issue says why. **Dev** builds your checkout's committed work with
+nixarchy's patches applied. Both are independent of your nixpkgs channel
+(**Update ▸ Nixpkgs**).
+
+**With your own NixOS flake**, the channel is the `url` of your `nixarchy`
+input. Change it, then `nix flake update nixarchy` and rebuild:
+
+```nix
+nixarchy = {
+  url = "github:olafkfreund/nixarchy/edge";   # …/release for stable; no branch follows main
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+The whole story (dev by hand, trying edge on one machine, going back):
+**[Omarchy channels](https://olafkfreund.github.io/nixarchy/manual/omarchy-channels)**.
 
 ## Keeping applications updated
 
@@ -814,7 +852,7 @@ by name (`build.yml`, "Every manual page is in the sidebar").
 
 **Keeping it running** — updating, stable or unstable, going back, and what to do when something breaks
 
-  [Updates](https://olafkfreund.github.io/nixarchy/manual/updates) · [Stable or unstable](https://olafkfreund.github.io/nixarchy/manual/channels) · [System snapshots](https://olafkfreund.github.io/nixarchy/manual/system-snapshots) · [Troubleshooting](https://olafkfreund.github.io/nixarchy/manual/troubleshooting) · [How this is tested](https://olafkfreund.github.io/nixarchy/manual/how-this-is-tested)
+  [Updates](https://olafkfreund.github.io/nixarchy/manual/updates) · [Stable or unstable](https://olafkfreund.github.io/nixarchy/manual/channels) · [Omarchy channels](https://olafkfreund.github.io/nixarchy/manual/omarchy-channels) · [System snapshots](https://olafkfreund.github.io/nixarchy/manual/system-snapshots) · [Troubleshooting](https://olafkfreund.github.io/nixarchy/manual/troubleshooting) · [How this is tested](https://olafkfreund.github.io/nixarchy/manual/how-this-is-tested)
 
 **Security and access** — the firewall and disk encryption, credentials that are not world-readable, and the session from elsewhere
 

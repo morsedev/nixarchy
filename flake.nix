@@ -348,7 +348,7 @@
       inputs.nix-flatpak.follows = "nix-flatpak";
     };
 
-    # Why: docs/internals/flake.md#nixarchy-menu-on-by-default-946-1052
+    # Why: docs/internals/flake.md#nixarchy-menu-installed-and-off-by-default-946-1052-1283
     # A commit on main (no tags); bump it the way that page says. Its only
     # inputs are these two, so it adds nothing to the lock but itself.
     nixarchy-menu = {
@@ -936,11 +936,10 @@
           # Hence a floor rather than a no-op or a warning. A warning is the
           # wrong instrument for this one: what it costs to ignore is access
           # to your own machine, and it would be read months before it is
-          # paid. On unstable the branch is not taken and nothing about the
-          # package changes.
-          # qtimageformats is the WebP (and TIFF, ...) decoder. quattro's default
-          # wallpaper is a .webp; without the plugin BackgroundMedia reports
-          # "Unsupported image format" and the desktop stays black (#1278).
+          # paid. On unstable that branch is not taken.
+          #
+          # Every branch then gains qtimageformats, Qt's WebP/TIFF decoder: without
+          # it a WebP background never draws ("Unsupported image format", #1284).
           quickshell =
             (
               # 0.3.2's WlSessionLock::unlock() asks isLocked() after releasing the
@@ -1879,6 +1878,8 @@
             "apply-imports"
             "apply-staging"
             "home-activation-writes"
+            "language-locale"
+            "language-select"
             # data/bin-ledger.nix, held to its own claim. Also the home of the
             # pacman allowlist that used to live inline in build.yml. See
             # tests/bin-ledger.nix and #447.
@@ -2007,6 +2008,9 @@
             # of it that could break here is the writable ~/.config/omarchy the
             # seed creates.
             "plugin"
+            # The boot splash's positions all live in layout(), redone when a
+            # display appears late. See tests/plymouth-layout.nix and #1285.
+            "plymouth-layout"
             # A previewed config's desktop actually renders: the vmVariant
             # gains the software-GL fallbacks and sizing, only when nixarchy
             # is on, all of it overridable. See tests/preview-variant.nix
@@ -2030,6 +2034,8 @@
             # it can still see them. See tests/review-pins.nix.
             "review-pins"
             "session-journal-race"
+            # A WebP loads through the plugin path the shell is launched with (#1284).
+            "shell-image-formats"
             # data/skill-parity.nix, held to upstream's own SKILL.md. See
             # tests/skill-parity.nix and #643.
             "skill-parity"
@@ -2201,6 +2207,14 @@
           doctor-wireless = import ./tests/doctor-wireless.nix {
             pkgs = pkgsFor.${system};
             inherit (self.packages.${system}) doctor;
+          };
+
+          # The Omarchy-channel line (#1278): stable, edge, dev and custom
+          # flakes, and a machine where nixarchy-channel is not installed.
+          doctor-channel = import ./tests/doctor-channel.nix {
+            pkgs = pkgsFor.${system};
+            inherit (self.packages.${system}) doctor;
+            omarchy = self.packages.${system}.omarchy;
           };
 
           # The dynamic-link check, against binaries built broken on purpose.
