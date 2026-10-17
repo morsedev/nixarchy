@@ -968,25 +968,7 @@ stdenvNoCC.mkDerivation {
               --replace-fail 'EXTENSION_DIR="/usr/share/chromium/extensions"' \
               'EXTENSION_DIR=""  # declared, not written -- see the message below'
 
-                # Every web app failed with
-            #
-            #   Error: Path "--app=https://messages.google.com/..." does not exist!
-            #
-            # omarchy-launch-webapp resolves the browser by reading Exec= out of a
-            # .desktop file and passing the binary to uwsm-app. When that lookup finds
-            # nothing the substitution is empty, so `--app=<url>` lands where the
-            # program should be and uwsm-app reports it as a missing path.
-            #
-            # It found nothing because the fallback names chromium.desktop, which is
-            # what Arch installs. NixOS calls it chromium-browser.desktop. The default
-            # browser here was a Chrome web-app profile entry -- chrome-<id>-Default
-            # -- which matches none of the patterns upstream lists, so every launch
-            # took the fallback and every web app was broken: all nine that call this
-            # directly, plus HEY and Zoom through their handlers.
-            #
-            # Both names are tried rather than one swapped for the other, because
-            # someone may have a chromium.desktop of their own and upstream's name
-            # should keep working.
+                # Why: pkgs/AGENTS.md#every-web-app-failed-with
             substituteInPlace $out/share/omarchy/bin/omarchy-launch-webapp \
               --replace-fail '*) browser="chromium.desktop" ;;' \
               '*) browser="chromium-browser.desktop" ;;'
@@ -1369,23 +1351,23 @@ stdenvNoCC.mkDerivation {
                         --replace-fail 'chromium.desktop' 'chromium-browser.desktop'
                     done
 
-                    # nixarchy's Zen is the flake's beta, which installs zen-beta.desktop (#1303).
+                    # #1303: tests/AGENTS.md#menu-conditions-and-hibernate-resume
                     for f in omarchy-default-browser omarchy-remove-browser; do
                       substituteInPlace $out/share/omarchy/bin/$f \
                         --replace-fail 'zen.desktop' 'zen-beta.desktop'
                     done
 
-                    # nixpkgs' helix installs `hx`: a saved `helix` fell back to nvim (#1303).
+                    # #1303: tests/AGENTS.md#menu-conditions-and-hibernate-resume
                     substituteInPlace $out/share/omarchy/bin/omarchy-launch-editor \
                       --replace-fail 'omarchy-cmd-present "$editor" || editor="nvim"' \
                         '[[ $editor == helix ]] && editor=hx; omarchy-cmd-present "$editor" || editor="nvim"'
 
-                    # Ask logind, which runs `systemctl hibernate`, not Arch's mkinitcpio drop-in (#1303).
+                    # #1303: tests/AGENTS.md#menu-conditions-and-hibernate-resume
                     substituteInPlace $out/share/omarchy/bin/omarchy-hibernation-available \
                       --replace-fail '[[ -f /etc/mkinitcpio.conf.d/omarchy_resume.conf ]]' \
                         '[[ $(busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate 2>/dev/null) =~ ^s\ \"(yes|challenge)\"$ ]]'
 
-                    # The X11 cursor glyph font is monospace to fontconfig, and is no text font (#1303).
+                    # #1303: tests/AGENTS.md#menu-conditions-and-hibernate-resume
                     substituteInPlace $out/share/omarchy/bin/omarchy-font-list \
                       --replace-fail "'emoji|signwriting|omarchy'" "'emoji|signwriting|omarchy|^cursor\.pcf$'"
 
@@ -1455,11 +1437,10 @@ stdenvNoCC.mkDerivation {
                         echo "  then: sudo nixos-rebuild switch --flake <your-flake>" >&2
                         exit 1'
 
-                    # The removal side says the same thing in one breath. Both keep
-                    # everything else they do -- dropping the packages, and in the
-                    # fingerprint case removing /etc/pam.d/omarchy-lock-fingerprint, which
-                    # is a plain file the lock screen writes rather than a link into the
-                    # store, so removing it is right.
+                    # The removal side says the same thing in one breath, and the block
+                    # after the drift guard makes both exit 1 before they drop packages or
+                    # delete anything. /etc/pam.d/omarchy-lock-fingerprint is declared by
+                    # modules/nixos.nix when fprintd is on, so removing it by hand is wrong.
                     substituteInPlace $out/share/omarchy/bin/omarchy-remove-security-fido2 \
                       --replace-fail 'remove_pam_config' \
                         'echo "PAM is configured by your NixOS build, so there is nothing to unpick" >&2
@@ -1470,8 +1451,8 @@ stdenvNoCC.mkDerivation {
                     substituteInPlace $out/share/omarchy/bin/omarchy-remove-security-fingerprint \
                       --replace-fail 'remove_pam_config' \
                         'echo "PAM is configured by your NixOS build, so there is nothing to unpick" >&2
-                        echo "in /etc/pam.d. Drop the fprintAuth lines and services.fprintd from" >&2
-                        echo "your configuration and rebuild." >&2
+                        echo "in /etc/pam.d. Turn off services.fprintd (fprintAuth follows it)" >&2
+                        echo "and rebuild." >&2
                         echo "" >&2' \
                       --replace-fail 'remove_resume_hook' ':' # the build declares the resume restart (#1288), so there is nothing to remove
 
@@ -1482,6 +1463,37 @@ stdenvNoCC.mkDerivation {
                       echo "the scripts above still edit a NixOS-managed PAM stack" >&2
                       exit 1
                     fi
+
+                    # #1304: each exits 1 before its first writer (data/menu-actions.nix).
+                    substituteInPlace $out/share/omarchy/bin/omarchy-dns \
+                      --replace-fail 'require_root "$provider"' \
+                        "$(cat ${./1304-guidance-dns.sh})"
+
+                    substituteInPlace $out/share/omarchy/bin/omarchy-setup-security-sudoless-docker \
+                      --replace-fail $'echo "⚠️  WARNING: Enabling sudoless Docker adds you to the \'docker\' group."' \
+                        "$(cat ${./1304-guidance-sudoless-docker-setup.sh})"
+
+                    substituteInPlace $out/share/omarchy/bin/omarchy-remove-security-sudoless-docker \
+                      --replace-fail 'echo "Removing $USER from the docker group..."' \
+                        "$(cat ${./1304-guidance-sudoless-docker-remove.sh})"
+
+                    substituteInPlace $out/share/omarchy/bin/omarchy-remove-security-fingerprint \
+                      --replace-fail 'echo -e "\e[32mRemoving fingerprint scanner from authentication.\n\e[0m"' \
+                        "$(cat ${./1304-guidance-remove-fingerprint.sh})"
+
+                    substituteInPlace $out/share/omarchy/bin/omarchy-remove-security-fido2 \
+                      --replace-fail 'echo -e "\e[32mRemoving FIDO2 device from authentication.\n\e[0m"' \
+                        "$(cat ${./1304-guidance-remove-fido2.sh})"
+
+                    substituteInPlace $out/share/omarchy/bin/omarchy-setup-security-fingerprint \
+                      --replace-fail 'if omarchy-pkg-missing libfprint-git fprintd usbutils; then' \
+                        'if ! command -v fprintd-enroll >/dev/null 2>&1; then' \
+                      --replace-fail '  sudo pacman -S --needed --noconfirm --ask 4 libfprint-git fprintd usbutils' \
+                        "$(cat ${./1304-guidance-setup-fingerprint.sh})"
+
+                    substituteInPlace $out/share/omarchy/bin/omarchy-menu-timezone \
+                      --replace-fail 'sudo timedatectl set-timezone "$timezone"' \
+                        "$(cat ${./1304-guidance-timezone.sh})"
 
                     # Each Icon= key is the file's basename lowercased with runs of non
                     # alphanumerics collapsed to a dash -- safe_icon_name() in
@@ -2079,11 +2091,24 @@ stdenvNoCC.mkDerivation {
                     # the bump that rewords it fails here. checks.session closes one and watches.
                     patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./902-notification-sender-close.patch}
 
-                    # Omarchy's menu answers omarchy-pkg-present from pacman (#1301); this
-                    # asks the PATH the way nix-bin/omarchy-pkg-present does.
                     # Why: pkgs/AGENTS.md#the-menu-asks-pacman-and-ignores-disabled-1301
                     substituteInPlace $out/share/omarchy/shell/plugins/menu/MenuModel.js \
                       --replace-fail "$(cat ${./1301-pkg-has.old.js})" "$(cat ${./1301-pkg-has.new.js})"
+
+                    # The menu's own bugs, carried until omacom/omarchy fixes them (#1305).
+                    # Why: pkgs/AGENTS.md#the-menus-own-bugs-1305
+                    # Bug 3: an override in the user's menu file copies only the keys it states.
+                    substituteInPlace $out/share/omarchy/shell/plugins/menu/MenuModel.js \
+                      --replace-fail '    out.push(normalizeItem(id, entry))' "$(cat ${./1305-menu-stated-keys.js})" \
+                      --replace-fail '      for (var k2 in entry) merged[k2] = entry[k2]' "$(cat ${./1305-menu-merge-stated.js})"
+                    # Bug 1: Right opens a submenu or follows a link, and never runs a row.
+                    substituteInPlace $out/share/omarchy/shell/plugins/menu/Menu.qml \
+                      --replace-fail '            if (root.dmenuActive) {' "$(cat ${./1305-menu-right-guard.js})"$'\n'"            if (root.dmenuActive) {" \
+                      --replace-fail '  function activateIndex(index, fromPointer) {' "$(cat ${./1305-menu-right-enters.js})"$'\n\n'"  function activateIndex(index, fromPointer) {"
+                    # Bug 2: a request the next one displaces releases its caller.
+                    substituteInPlace $out/share/omarchy/shell/plugins/menu/Menu.qml \
+                      --replace-fail "  function openExistingMenu(initialMenu) {"$'\n'"    requestSerial += 1" "$(cat ${./1305-menu-release-displaced.js})"$'\n\n'"  function openExistingMenu(initialMenu) {"$'\n'"    root.releaseDisplacedRequest()"$'\n'"    requestSerial += 1" \
+                      --replace-fail "  function openDmenu(payload) {"$'\n'"    requestSerial += 1" "  function openDmenu(payload) {"$'\n'"    root.releaseDisplacedRequest()"$'\n'"    requestSerial += 1"
 
                     # Wear the snowflake.
                     substitute ${./menu-bar-widget.qml} \

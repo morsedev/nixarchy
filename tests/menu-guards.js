@@ -106,8 +106,11 @@ for (const id of Object.keys(upRaw)) {
   if (!id.startsWith("remove.") || !PKG.test(String(upRaw[id].when || ""))) continue
   count("upstream-guarded-remove")
   if (!raw[id]) { fail(`${id}: upstream's remove row is missing from the generated menu`); continue }
-  // A row nixarchy ported has its own action; #1304 owns those.
+  // A row nixarchy ported has its own action or its own `when` (a "false" is the
+  // generator's hide, not a port); #1304 owns those.
+  const when = String(raw[id].when || "")
   if (raw[id].action !== upRaw[id].action) continue
+  if (when !== String(upRaw[id].when || "") && when !== "false") continue
   count("unported-remove")
   if (present.visible(id)) fail(`${id}: visible with its package present, and still runs upstream's ${upRaw[id].action}`)
 }
@@ -128,7 +131,9 @@ for (const [wn, w] of [["absent", absent], ["present", present]]) {
   }
 }
 
-const floors = { "disabled-no-when": 30, unavailable: 3, "dims-on-path": 40, "package-guarded": 1, "upstream-guarded-remove": 1, "unported-remove": 0, "helper-agreement": 60 }
+// package-guarded is 0: on stable the only such rows (hermes, perplexity) are
+// hidden by #1304; edge still has three.
+const floors = { "disabled-no-when": 30, unavailable: 3, "dims-on-path": 40, "package-guarded": 0, "upstream-guarded-remove": 1, "unported-remove": 0, "helper-agreement": 60 }
 for (const [k, min] of Object.entries(floors))
   if ((counts[k] || 0) < min) fail(`only ${counts[k] || 0} ${k} cases, expected at least ${min}: the menu changed shape or this check stopped reading it`)
 
