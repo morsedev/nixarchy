@@ -560,24 +560,7 @@ stdenvNoCC.mkDerivation {
                       exit 1
                     }
 
-                    # The third site of the same store-mode problem, and the expensive one.
-                    #
-                    # These two copies land 17 desktop files in ~/.local/share/applications
-                    # at the store's 444, so the NEXT run cannot rewrite its own output:
-                    #
-                    #   cp: cannot create regular file '.../Basecamp.desktop': Permission denied
-                    #
-                    # omarchy-provision-user runs under `set -euo pipefail` and calls this
-                    # eleven lines before `omarchy-done mark finalize-user`, so it aborted
-                    # here, the marker was never written, and provisioning re-ran and
-                    # re-failed on every login -- with nothing after the call ever running
-                    # once. ~/.local/state/omarchy/done did not exist on a machine that had
-                    # been in daily use for months.
-                    #
-                    # -f as well as --no-preserve=mode: the mode flag only stops NEW copies
-                    # from landing read-only, and every machine installed before this
-                    # already has 444 files that cp cannot open for writing even as their
-                    # owner. -f unlinks and retries, which repairs those in place.
+                    # Why: pkgs/AGENTS.md#refresh-applications-copies-writable-desktop-files
                     substituteInPlace $out/share/omarchy/bin/omarchy-refresh-applications \
                       --replace-fail \
                         'cp "$OMARCHY_PATH"/applications/*.desktop' \
@@ -2090,6 +2073,10 @@ stdenvNoCC.mkDerivation {
                     # (#1032). CARRIED until omacom/omarchy fixes the same handler; --fuzz=0 so
                     # the bump that rewords it fails here. checks.session closes one and watches.
                     patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./902-notification-sender-close.patch}
+
+                    # Why: pkgs/AGENTS.md#nixarchy-menu-loads-synchronously-1313
+                    substituteInPlace $out/share/omarchy/shell/shell.qml \
+                      --replace-fail "$(cat ${./1313-panel-loader.old.qml})" "$(cat ${./1313-panel-loader.new.qml})"
 
                     # Why: pkgs/AGENTS.md#the-menu-asks-pacman-and-ignores-disabled-1301
                     substituteInPlace $out/share/omarchy/shell/plugins/menu/MenuModel.js \

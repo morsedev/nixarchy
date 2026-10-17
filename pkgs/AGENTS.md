@@ -948,6 +948,37 @@ The pacman snapshot lines above the rewritten ones are left dead on purpose:
 edge builds them in `guardPackageSnapshot()`, so their text differs between
 pins, while the two replaced lines read the same on both.
 
+<a id="nixarchy-menu-loads-synchronously-1313"></a>
+## nixarchy-menu loads synchronously (#1313)
+
+Enabling nixarchy-menu could segfault Quickshell (#1313). The backtrace is
+`QQmlConnections::setTarget` <- `connectSignalsToMethods`, reached from a
+binding write inside `QsIncubationController::incubate`: a `Connections` was
+retargeted while its component was still incubating, which Qt 6.11 does not
+survive. The `Connections` is nixarchy-menu's `providers/Applications.qml:32`
+(`target: root.library`).
+
+Two routes into the retarget were seen: `core/ApplicationLibrary.qml`'s
+fallback Loader creating Omarchy's `AppLibrary.qml` mid-incubation, and the
+scoped shell API arriving mid-incubation. Plugin-registry timing decides
+whether `library` changes inside the window, and the stock menu's unload in
+the same pass shifts it, which is why unrelated PRs flipped it.
+
+Fixing only route 1 (fix (a)) crashed in 1 of 3 runs (unpatched: 3 of 3 SEGV).
+So `default.nix` rewrites the shell's `panelLoader` (`1313-panel-loader.{old,new}.qml`)
+to `asynchronous: panelEntry.pluginId !== "nixarchy.menu"`: the panel is
+created in one step and the retarget happens after incubation. The inner
+loaders were already synchronous; they only ran nested because the outer
+load was not.
+
+Only nixarchy-menu is synchronous, not every plugin: Mode A, the owner's
+decision of 2026-10-17. A future `keepLoaded` plugin with the same
+`Connections` pattern is unprotected.
+
+Drop it when nixarchy-menu survives an asynchronous load, proven with the
+same `checks.session` runs. The defect is nixarchy-menu's own; the follow-up
+issue is olafkfreund/nixarchy-menu#28.
+
 <a id="wallpapers-are-capped-at-4096px-so-they-can-become-a-texture"></a>
 ## Wallpapers are capped at 4096 px so they can become a texture
 
@@ -997,3 +1028,28 @@ directly, plus HEY and Zoom through their handlers.
 Both names are tried rather than one swapped for the other, because
 someone may have a chromium.desktop of their own and upstream's name
 should keep working.
+
+<a id="refresh-applications-copies-writable-desktop-files"></a>
+## omarchy-refresh-applications copies writable desktop files
+
+Moved here from `pkgs/omarchy/default.nix`'s install phase, which has a byte
+budget (`checks.install-phase-budget`), by #1313.
+
+The third site of the same store-mode problem, and the expensive one.
+
+These two copies land 17 desktop files in ~/.local/share/applications
+at the store's 444, so the NEXT run cannot rewrite its own output:
+
+  cp: cannot create regular file '.../Basecamp.desktop': Permission denied
+
+omarchy-provision-user runs under `set -euo pipefail` and calls this
+eleven lines before `omarchy-done mark finalize-user`, so it aborted
+here, the marker was never written, and provisioning re-ran and
+re-failed on every login -- with nothing after the call ever running
+once. ~/.local/state/omarchy/done did not exist on a machine that had
+been in daily use for months.
+
+-f as well as --no-preserve=mode: the mode flag only stops NEW copies
+from landing read-only, and every machine installed before this
+already has 444 files that cp cannot open for writing even as their
+owner. -f unlinks and retries, which repairs those in place.

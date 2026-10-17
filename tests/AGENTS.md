@@ -1712,8 +1712,16 @@ reason. Whether a deleting row deletes the right things is the job of a
 `runCommand` with a fixture `$HOME`, as `checks.remove-preinstalls` does for
 Remove and Restore preinstalls.
 
-Two holes no check here closes: that the stock menu actually hides a row with
-`when = "false"` (that is MenuModel, and #1301's `checks.menu-guards`), and
+A row with `disabled = "true"` must have `action = "true"`, and the check
+asserts it (#1320). Neither `when = "false"` nor `disabled` stops
+`omarchy menu summon <id>`: `openRoute` runs an action row reached by id
+or alias before any guard (omacom/omarchy#15742). So a row that must
+never run cannot keep a live action.
+
+Three holes no check here closes: that the stock menu actually hides a row with
+`when = "false"` (that is MenuModel, and #1301's `checks.menu-guards`), that no
+route around the menu, such as `omarchy menu summon <id>`, runs a hidden row's
+action (only rows with `disabled = "true"` are asserted to run nothing), and
 that `nixarchy-service-disable geforce-now` stops activation reinstalling
 the Flatpak.
 
@@ -1736,3 +1744,13 @@ NixOS that resets PATH; `bash -l` sources `/etc/profile`, which does the
 same.** A check that varies PATH must spawn bash with stdin ignored,
 `--noprofile --norc` and an absolute path. Measured on p620: the "absent"
 world found `/run/current-system/sw/bin/sdl-freerdp`.
+
+## The session probe fails on any Quickshell crash (#1313)
+
+`checks.session` calls `quickshell_crashed()` right after the #1283 probe
+enables nixarchy-menu and again at the end of the script: a restarted shell
+that answers `omarchy-plugin-list` still fails. It reads the boot journal, not
+`coredumpctl`, which printed "No coredumps found" while systemd-coredump was
+still writing 798 MB (`Cannot store coredump … No space left on device`). The
+journal line names the process `(.quickshell-wra)`, with a leading dot, so an
+exact match such as coredumpctl's `COMM=quickshell-wra` misses it.
