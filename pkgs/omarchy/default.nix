@@ -1488,7 +1488,7 @@ stdenvNoCC.mkDerivation {
                     substituteInPlace $out/share/omarchy/bin/omarchy-setup-security-fingerprint \
                       --replace-fail 'if omarchy-pkg-missing libfprint-git fprintd usbutils; then' \
                         'if ! command -v fprintd-enroll >/dev/null 2>&1; then' \
-                      --replace-fail '  sudo pacman -S --needed --noconfirm --ask 4 libfprint-git fprintd usbutils' \
+                      --replace-fail '  sudo pacman -S --needed --noconfirm --ask 4 -- libfprint-git fprintd usbutils' \
                         "$(cat ${./1304-guidance-setup-fingerprint.sh})"
 
                     substituteInPlace $out/share/omarchy/bin/omarchy-menu-timezone \
