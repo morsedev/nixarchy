@@ -899,6 +899,7 @@ restricted to `Menu.qml` and `MenuModel.js`, and applied with `--fuzz=0`.
 Drop it when stable reaches a release containing #6955. Edge already has it
 and deletes the `patch` line in its carry commit. #1305 rebases its own menu
 edits onto this patch, so its content is frozen (sha256 in the plan).
+Edge dropped it: quattro already carries #6955, and the patch fails there.
 
 The pacman snapshot lines above the rewritten ones are left dead on purpose:
 edge builds them in `guardPackageSnapshot()`, so their text differs between
