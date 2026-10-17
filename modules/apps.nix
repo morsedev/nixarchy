@@ -549,22 +549,6 @@ let
           description = "Switch to an earlier system generation. Your home directory is not touched";
         };
 
-        # Explicit `parent`: MenuModel.js's default parent for this id is
-        # "system.recovery.snapshot" (its own id with the last segment
-        # dropped) -- the PEER row below, not this menu. Left to the
-        # default, this row would render one level too deep: invisible when
-        # browsing System > Backup and recovery, reachable only by search --
-        # the same trap trigger.snapshot.restore was already in under
-        # Trigger, and the reason system.recovery.home-backup.restore below
-        # needs the same override.
-        "system.recovery.snapshot.restore" = {
-          icon = "󰦛";
-          label = "Restore from snapshot";
-          parent = "system.recovery";
-          action = "omarchy-launch-floating-terminal-with-presentation omarchy-snapshot restore";
-          description = "Open an earlier version of your home directory and copy back what you want";
-        };
-
         # Why: modules/AGENTS.md#the-off-disk-half-beside-the-on-disk-one
         "system.recovery.home-backup.restore" = {
           icon = "󰇚";
@@ -573,16 +557,6 @@ let
           when = "nixarchy-home-backup --check";
           action = "omarchy-launch-floating-terminal-with-presentation nixarchy-home-backup restore";
           description = "Copy your bar, keybindings and themes back out of the backup. Works on a new machine";
-        };
-
-        # Upstream's snapshots are taken by its updater and restored from
-        # the boot menu, and neither happens here. This is a new row, so it
-        # carries its own label and icon.
-        "system.recovery.snapshot" = {
-          icon = "󰆓";
-          label = "Snapshot home";
-          action = "omarchy-launch-floating-terminal-with-presentation omarchy-snapshot create";
-          description = "Save your home directory as it is now. Instant, and costs nothing until files change";
         };
 
         "system.recovery.home-backup" = {
@@ -613,6 +587,12 @@ let
           action = "omarchy-launch-floating-terminal-with-presentation nixarchy-reinstall-iso";
           description = "A bootable image that reinstalls this machine's system on new hardware. Not a backup: it carries none of your files";
         };
+
+        # Upstream gates these on Arch's binary names (#1303): nixpkgs' helix
+        # installs `hx`, nixarchy's Zen is the flake's `zen-beta`. The setter and
+        # launcher patches in pkgs/omarchy/default.nix name the same binaries.
+        "setup.default.editor.helix".when = "omarchy-cmd-present hx";
+        "setup.default.browser.zen".when = "omarchy-cmd-present zen-beta";
 
         "install.aur" = {
           when = "false";
@@ -865,6 +845,38 @@ let
           when = "nixarchy-vm --check && ! nixarchy-plugin --enabled nixarchy.microvm";
           description = "The panel is off: what you have created, in a terminal";
         };
+        # #1304: hidden. Its omarchy-remove-dev-env arm is `elixir|phoenix`, so
+        # removing Phoenix uninstalls Elixir and Erlang with it.
+        "remove.development.elixir.phoenix".when = "false";
+      }
+      # Snapshots need the `home` snapper config omarchy-snapshot drives;
+      # only the installer sets one, so Mode A gets no rows that only refuse (#1303).
+      // lib.optionalAttrs (config.services.snapper.configs ? home) {
+        # Explicit `parent`: MenuModel.js's default parent for this id is
+        # "system.recovery.snapshot" (its own id with the last segment
+        # dropped) -- the PEER row below, not this menu. Left to the
+        # default, this row would render one level too deep: invisible when
+        # browsing System > Backup and recovery, reachable only by search --
+        # the same trap trigger.snapshot.restore was already in under
+        # Trigger, and the reason system.recovery.home-backup.restore above
+        # needs the same override.
+        "system.recovery.snapshot.restore" = {
+          icon = "󰦛";
+          label = "Restore from snapshot";
+          parent = "system.recovery";
+          action = "omarchy-launch-floating-terminal-with-presentation omarchy-snapshot restore";
+          description = "Open an earlier version of your home directory and copy back what you want";
+        };
+
+        # Upstream's snapshots are taken by its updater and restored from
+        # the boot menu, and neither happens here. This is a new row, so it
+        # carries its own label and icon.
+        "system.recovery.snapshot" = {
+          icon = "󰆓";
+          label = "Snapshot home";
+          action = "omarchy-launch-floating-terminal-with-presentation omarchy-snapshot create";
+          description = "Save your home directory as it is now. Instant, and costs nothing until files change";
+        };
       }
       # Why: modules/AGENTS.md#the-default-plugins-are-on-from-the-first-login
       //
@@ -1004,6 +1016,9 @@ let
         overrides = json.load(open(spec_path))
         arch_map = json.load(open(archmap_path))
 
+        # Upstream's `omarchy-pkg-*` guards, which the menu answers from the PATH (#1301).
+        PKG_GUARD = re.compile(r"\bomarchy-pkg-(present|missing)\b")
+
         # Upstream's remove.* rows name their app only in their `when`, as
         # `omarchy-pkg-present <arch-package>`. Deriving the overrides from
         # that keeps them tracking upstream instead of being hand-listed here,
@@ -1028,6 +1043,43 @@ let
                 "description": "Remove from your app selection, then Apply changes",
             }
 
+        # A Remove row whose Install sibling nixarchy rewired to the selection
+        # undoes it the same way, whatever upstream's `when` spelled (#1304).
+        # Runs after the pkg-present rule, so rows that rule mapped keep theirs.
+        for row_id in list(upstream):
+            if not row_id.startswith("remove.") or row_id in overrides:
+                continue
+            sibling = overrides.get("install." + row_id[len("remove."):], {})
+            m = re.fullmatch(
+                r"nixarchy-(app|service)-enable ([a-z0-9._-]+)",
+                str(sibling.get("action", "")),
+            )
+            if not m:
+                continue
+            kind, ident = m.groups()
+            if kind == "app":
+                when = ("grep -qE '^[[:space:]]*" + ident
+                        + "\\.enable' $HOME/.config/nixarchy/apps.nix")
+                description = "Remove from your app selection, then Apply changes"
+            else:
+                when = ("grep -qE '^[[:space:]]*[^#[:space:]].*#@ " + ident
+                        + "([[:space:]]|$)' $HOME/.config/nixarchy/services.nix")
+                description = "Remove from your services, then Apply changes"
+            overrides[row_id] = {
+                "action": f"nixarchy-{kind}-disable {ident}",
+                "when": when,
+                "description": description,
+            }
+            print(f"sibling rule: {row_id} -> nixarchy-{kind}-disable {ident}")
+
+        # An upstream remove row nixarchy has not ported still runs Arch's script,
+        # so it stays hidden however the guard answers. #1304 ports them row by row;
+        # a row it overrides is in `overrides` and this leaves it alone.
+        for row_id, row in upstream.items():
+            if (row_id.startswith("remove.") and row_id not in overrides
+                    and PKG_GUARD.search(str(row.get("when", "")))):
+                overrides[row_id] = {"when": "false"}
+
         out = {}
         missing = []
         for row_id, override in overrides.items():
@@ -1049,6 +1101,9 @@ let
             if base:
                 for key, value in base.items():
                     if key not in merged and value not in ("", [], None):
+                        # A row we dim must not also be hidden by upstream's package guard.
+                        if key == "when" and "disabled" in merged and PKG_GUARD.search(str(value)):
+                            continue
                         merged[key] = value
             out[row_id] = merged
 

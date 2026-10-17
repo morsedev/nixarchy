@@ -196,7 +196,7 @@
   };
   "omarchy-default-browser" = {
     class = "patch";
-    reason = "It names chromium.desktop, which nixpkgs calls chromium-browser.desktop, so setting the browser exited 1 having set nothing and the no-argument read printed the raw desktop id.";
+    reason = "It names chromium.desktop, which nixpkgs calls chromium-browser.desktop, so setting the browser exited 1 having set nothing and the no-argument read printed the raw desktop id. It also names zen.desktop; nixarchy's Zen is the zen-browser flake's beta, which installs zen-beta.desktop, so the setter set a desktop id that does not exist and the reader never answered zen (#1303).";
   };
   "omarchy-dev-install-ydoo" = {
     class = "vendor";
@@ -227,6 +227,10 @@
     class = "patch";
     reason = "Its terminal-font step edits ~/.config/{alacritty,ghostty,foot,kitty} with `sed -i`. On Arch those are ordinary files; here they can be Home Manager symlinks into the store, so sed dies with `couldn't open temporary file /nix/store/sedXXXXXX: Read-only file system` while the shell and GTK sizes still apply -- a partial result and an error nobody can act on (#948). A guard returns early and names the files instead, so an unmanaged config keeps today's behaviour.";
   };
+  "omarchy-font-list" = {
+    class = "patch";
+    reason = "Its fc-list :spacing=100 also matches X11's cursor glyph font, which fontconfig reports as family `cursor.pcf` wherever font-cursor-misc is installed -- NixOS adds it with services.xserver.enable. The grep -v that already drops emoji fonts also drops that family (#1303).";
+  };
   "omarchy-games-retro-cores" = {
     class = "replace";
     reason = "Upstream filters a hardcoded list of 23 preferred cores against /usr/lib/libretro. Lists whatever the built retroarch package actually carries, labelled from libretro-core-info.";
@@ -236,9 +240,8 @@
     reason = "It hardcodes /usr/lib/libretro. nixpkgs puts the cores inside the retroarch wrapper's own store path, so the directory is resolved at runtime with `omarchy-retroarch-cores`.";
   };
   "omarchy-hibernation-available" = {
-    class = "vendor";
-    reason = "Vendored unchanged, and read-only: it decides hibernation is set up by testing for /etc/mkinitcpio.conf.d/omarchy_resume.conf, which nothing on NixOS creates, so it reports unavailable -- which is right, because modules/nixos.nix ships zram and no hibernation swap.";
-    allow = "initrd-boot";
+    class = "patch";
+    reason = "It decided hibernation was set up by testing for /etc/mkinitcpio.conf.d/omarchy_resume.conf, which only Omarchy's Arch installer writes, so a NixOS machine with swap and boot.resumeDevice never saw the Hibernate row. That term asks logind's CanHibernate instead -- the same authority `systemctl hibernate` uses. Upstream's image_size, swap-size and zram terms stay (#1303).";
   };
   "omarchy-hibernation-remove" = {
     class = "vendor";
@@ -267,6 +270,10 @@
     reason = "Vendored unchanged. Blacklists xpad in /etc/modprobe.d, loads hid_xpadneo, and adds $USER to the input group. All three are declarative here -- boot.blacklistedKernelModules, boot.kernelModules and extraGroups -- so the imperative run does not survive a rebuild.";
     allow = "account-tools etc-write modprobe";
   };
+  "omarchy-install-preinstalls" = {
+    class = "replace";
+    reason = "Upstream reseeds through omarchy-refresh-applications, whose cp -f replaces an edited launcher or a home-manager link and whose mise stubs delete a home-manager ~/.local/bin entry, then exits on omarchy-pkg-add so the marker never clears. Copies only missing launchers, writes no stubs, and clears the marker (#1304).";
+  };
   "omarchy-install-service-1password" = {
     class = "patch";
     reason = "It drops a JSON stub into /usr/share/chromium/extensions with sudo; that is a store path here, so the write fails. Replaced by a message naming programs.chromium.extensions.";
@@ -294,6 +301,10 @@
   "omarchy-launch-browser" = {
     class = "patch";
     reason = "It reads the browser's .desktop from {~/.local,~/.nix-profile,/usr}/share/applications. On NixOS those live under /run/current-system/sw and /etc/profiles/per-user, so the lookup found nothing.";
+  };
+  "omarchy-launch-editor" = {
+    class = "patch";
+    reason = "omarchy-default-editor saves `helix`, but nixpkgs' helix installs only `hx`, so the launcher's omarchy-cmd-present fell back to nvim. A saved `helix` is read as `hx` (#1303).";
   };
   "omarchy-launch-openclaw" = {
     class = "vendor";
@@ -361,8 +372,8 @@
   };
   "omarchy-pkg-drop" = {
     class = "vendor";
-    reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
-    pacman = "A menu row modules/apps.nix overrides away, so nothing on this system reaches the pacman path inside it.";
+    reason = "Vendored unchanged. Reached from live menu rows; its pacman -Qq comes back empty here, so it drops nothing.";
+    pacman = "Reached, and inert: `pacman -Qq` answers nothing on NixOS, so the -Rns branch never runs. The remove rows nixarchy has not ported are also kept hidden by the generator (`when = \"false\"`, #1301).";
   };
   "omarchy-pkg-install" = {
     class = "replace";
@@ -370,16 +381,16 @@
   };
   "omarchy-pkg-missing" = {
     class = "replace";
-    reason = "Same reason as omarchy-pkg-present: there is no package database to query, so this asks whether the command is runnable, with the -bin and -stable suffixes stripped.";
+    reason = "Same reason as omarchy-pkg-present: there is no package database to query, so this asks whether the command is runnable, with the -bin and -stable suffixes stripped. The stock menu does not call this command: its guard batch defines a function of the same name, which #1301 makes answer by the same rule, inside the shell.";
   };
   "omarchy-pkg-present" = {
     class = "replace";
-    reason = "Upstream asks `pacman -Q`. There is no package database here, so the closest honest answer is whether the command is runnable; menu rows needing exactness check the app selection themselves.";
+    reason = "Upstream asks `pacman -Q`. There is no package database here, so the closest honest answer is whether the command is runnable; menu rows needing exactness check the app selection themselves. The stock menu does not call this command: its guard batch defines a function of the same name, which #1301 makes answer by the same rule, inside the shell.";
   };
   "omarchy-pkg-remove" = {
     class = "vendor";
     reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
-    pacman = "A menu row modules/apps.nix overrides away, so nothing on this system reaches the pacman path inside it.";
+    pacman = "A menu row modules/apps.nix overrides away, so nothing on this system reaches the pacman path inside it. The remove rows nixarchy has not ported are kept hidden by the generator (`when = \"false\"`, #1301) until #1304 ports them.";
   };
   "omarchy-plugin-clone" = {
     class = "patch";
@@ -453,7 +464,7 @@
   };
   "omarchy-remove-browser" = {
     class = "patch";
-    reason = "It writes chromium.desktop as the fallback default browser, a name nixpkgs does not use, and its `|| true` swallowed the failure -- so removing Chrome left a default resolving to nothing.";
+    reason = "It writes chromium.desktop as the fallback default browser, a name nixpkgs does not use, and its `|| true` swallowed the failure -- so removing Chrome left a default resolving to nothing. Its Zen fallback compared against zen.desktop, which nixarchy's Zen does not install; it names zen-beta.desktop (#1303).";
     allow = "etc-write";
   };
   "omarchy-remove-gaming-xbox-controllers" = {
@@ -465,6 +476,10 @@
     class = "patch";
     reason = "Its last branch uninstalls a package-owned .desktop with `pacman -Qqo` and `pacman -Rns`, so the App Library said it did not know how. Only that dead end is replaced, with the apps.nix route.";
     pacman = "A menu row modules/apps.nix overrides away, so nothing on this system reaches the pacman path inside it.";
+  };
+  "omarchy-remove-preinstalls" = {
+    class = "replace";
+    reason = "Upstream deletes every web app and TUI launcher and rm -f's named ~/.local/bin entries whoever made them. Deletes only an unmodified, regular-file seed of a shipped web app or TUI, and only an exact omarchy-mise-install stub (#1304).";
   };
   "omarchy-remove-security-fido2" = {
     class = "patch";

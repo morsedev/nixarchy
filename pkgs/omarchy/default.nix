@@ -1369,6 +1369,26 @@ stdenvNoCC.mkDerivation {
                         --replace-fail 'chromium.desktop' 'chromium-browser.desktop'
                     done
 
+                    # nixarchy's Zen is the flake's beta, which installs zen-beta.desktop (#1303).
+                    for f in omarchy-default-browser omarchy-remove-browser; do
+                      substituteInPlace $out/share/omarchy/bin/$f \
+                        --replace-fail 'zen.desktop' 'zen-beta.desktop'
+                    done
+
+                    # nixpkgs' helix installs `hx`: a saved `helix` fell back to nvim (#1303).
+                    substituteInPlace $out/share/omarchy/bin/omarchy-launch-editor \
+                      --replace-fail 'omarchy-cmd-present "$editor" || editor="nvim"' \
+                        '[[ $editor == helix ]] && editor=hx; omarchy-cmd-present "$editor" || editor="nvim"'
+
+                    # Ask logind, which runs `systemctl hibernate`, not Arch's mkinitcpio drop-in (#1303).
+                    substituteInPlace $out/share/omarchy/bin/omarchy-hibernation-available \
+                      --replace-fail '[[ -f /etc/mkinitcpio.conf.d/omarchy_resume.conf ]]' \
+                        '[[ $(busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate 2>/dev/null) =~ ^s\ \"(yes|challenge)\"$ ]]'
+
+                    # The X11 cursor glyph font is monospace to fontconfig, and is no text font (#1303).
+                    substituteInPlace $out/share/omarchy/bin/omarchy-font-list \
+                      --replace-fail "'emoji|signwriting|omarchy'" "'emoji|signwriting|omarchy|^cursor\.pcf$'"
+
                     # Why: pkgs/AGENTS.md#nothing-may-sed-etcpamd
                     pambin=$out/share/omarchy/bin
                     for pair in \
@@ -2058,6 +2078,14 @@ stdenvNoCC.mkDerivation {
                     # (#1032). CARRIED until omacom/omarchy fixes the same handler; --fuzz=0 so
                     # the bump that rewords it fails here. checks.session closes one and watches.
                     patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./902-notification-sender-close.patch}
+
+                    # Omarchy's menu answers omarchy-pkg-present from pacman (#1301); this
+                    # carries upstream's dimming (omacom/omarchy#6955) until stable has it,
+                    # and asks the PATH the way nix-bin/omarchy-pkg-present does.
+                    # Why: pkgs/AGENTS.md#the-menu-asks-pacman-and-ignores-disabled-1301
+                    patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./1301-menu-disabled.patch}
+                    substituteInPlace $out/share/omarchy/shell/plugins/menu/MenuModel.js \
+                      --replace-fail "$(cat ${./1301-pkg-has.old.js})" "$(cat ${./1301-pkg-has.new.js})"
 
                     # Wear the snowflake.
                     substitute ${./menu-bar-widget.qml} \
