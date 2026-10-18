@@ -767,12 +767,17 @@ whether real `quickshell list` still prints `Process ID:`. The first is a hand
 check on p620: swap a plugin folder and restart at once. The second fails
 toward today's behaviour, not a hang.
 
-## Menu aliases: the words are a judgement, and nothing here checks them
+## Menu aliases: the words are a judgement, and only where they lead is checked
 
 `checks.options` asserts that the Nixi row carries its `when` guard and that no
 second nixi row exists, and `checks.menu-verbs` asserts the actions are
 commands the CLI accepts. Neither says anything about the **nine Ask rows'
 aliases** added in #961, and no check here can.
+
+Since #1302, `tests/menu-tree.py` (run by `checks.menu-verbs`) checks that every
+alias two rows share, or that an exact id shadows, summons the winner pinned in
+its `EXPECTED` table. It still says nothing about whether the words are the
+right words, which is the judgement the rest of this section describes.
 
 Two reasons, both worth knowing before someone writes a check that looks like
 coverage:
@@ -1663,8 +1668,44 @@ Two fixes ported from Omarchy `quattro` have parts no layer here can show:
   call. By hand: boot with a Thunderbolt dock whose display comes up late
   and watch the logo and the passphrase field land in the middle of it.
 
+## menu-tree: reachable by browsing, and what it cannot see (#1302)
+
+`tests/menu-tree.py` applies `MenuModel.js`'s rules to the generated menu
+defaults. It walks the screens a user can open from `root` and fails every row
+that is not listed on one, naming the cause: an `orphan` (the parent is not a
+row), a row `under an action`, or `unreachable` (a cycle, a link). It also pins
+every alias that two rows declare, or that an exact id shadows, to the row
+`omarchy menu summon` must open. It runs inside `checks.menu-verbs`, so it
+shares that check's evaluation of the reference configuration and runs on edge
+(`omarchy-edge.yml:239`) with no workflow of its own.
+
+It tests itself first. Before the real run, `menu-verbs.nix` feeds it three
+mutated copies of the real menu (the Flatpak parent deleted, a restore row's
+`parent` deleted, `backup` added back to an Ask row) and requires each to fail
+with its message. A rule that stops firing then fails every build, instead of
+reading as a menu that is fine.
+
+The parent rule must honour an explicit `parent`. #1302's own resolver ignored
+it and reported the two correct restore rows as unreachable, which was a false
+positive in the issue and would have been one in the check.
+
+Three holes, none of them closable here:
+
+A single-owner alias pointing at the wrong row is not mechanically decidable.
+`rollback` on `trigger.ask.update` was that shape: one owner, wrong
+destination. `backup` is both a deliberate alias of `system.recovery` and the
+last segment of `system.recovery.backup`, so no segment rule can tell intended
+from accidental. Choosing a new alias means reading `resolveRoute` order by
+hand.
+
+`resolveRoute` ignores `when`, so a hidden row can still win a summon. That is
+upstream code (#1305).
+
+The user's `~/.config/omarchy/extensions/omarchy-menu.jsonc` and any
+`extraEntries` are never checked. The reference configuration has none.
+
 <a id="menu-conditions-and-hibernate-resume"></a>
-## menu-conditions, and the hibernation measurement (#1303)
+## menu-conditions and hibernate-resume (#1303)
 
 Five menu rows asked Arch instead of the NixOS machine (Hibernate, Helix, Zen,
 the snapshot rows, and the font list's `cursor.pcf`).
@@ -1673,20 +1714,19 @@ the snapshot rows, and the font list's `cursor.pcf`).
   generated menu, as `menu-verbs` does. The stubs are sound only because
   upstream's scripts are unwrapped (see "A PATH stub loses to runtimeInputs"):
   check none gained a wrapper before trusting a green.
-- **The logind half is measured, not yet checked in CI.** A scratch
-  `runNixOSTest` (two nodes, `zramSwap.enable` on both, a 2 GiB `/dev/vdb` as
-  swap) showed logind's `CanHibernate` answering:
+- **`hibernate-resume`** is a one-node VM. It proves logind's `CanHibernate`
+  says `yes` with `boot.resumeDevice` set and disk swap on, and `na` with zram
+  alone. Measured before any code was written (scratch `runNixOSTest`, two
+  nodes, `zramSwap.enable` on both, a 2 GiB `/dev/vdb` as swap):
 
   ```
   resume    resume= 253:16  with disk swap: s "yes"  zram only: s "na"
   noresume  resume= 0:0     with disk swap: s "na"   zram only: s "na"
   ```
 
-  So without `boot.resumeDevice` logind says `na` even with disk swap. The
-  VM check that pins this (`checks.hibernate-resume`) needs KVM, and so a
-  claim in `generated-checks.sh` plus a step in `build.yml`'s `box` job. That
-  CI-gate change is held for a maintainer, so the check is not in this tree:
-  an unclaimed VM check would boot in the `omarchy` job, which has no KVM.
+  So without `boot.resumeDevice` logind answers `na` even with disk swap. It
+  needs KVM, so it is claimed in `generated-checks.sh` and runs in the `box`
+  job, not the `omarchy` job.
 
 Holes, named rather than closed:
 
@@ -1754,3 +1794,48 @@ that answers `omarchy-plugin-list` still fails. It reads the boot journal, not
 still writing 798 MB (`Cannot store coredump … No space left on device`). The
 journal line names the process `(.quickshell-wra)`, with a leading dot, so an
 exact match such as coredumpctl's `COMM=quickshell-wra` misses it.
+
+<a id="provision-launchers-runs-two-calls-not-provisioning"></a>
+## provision-launchers runs two calls, not provisioning (#1319)
+
+`checks.provision-launchers` runs `install/user/mise.sh` the way `all.sh:14`
+runs it, then `omarchy-refresh-applications` (`omarchy-provision-user:118`),
+twice on a dirty home and once on a clean one.
+
+- **Hole 1.** It does not run the whole of `omarchy-provision-user`, so a third
+  writer added upstream to `all.sh` or to provision-user is not seen.
+- **Hole 2.** No check runs a real Home Manager activation followed by a real
+  first login, in that order. Only a VM with Home Manager could.
+
+**`cp -f` writes through a destination symlink whose target is writable.** It
+unlinks the link only when the target refuses the write (coreutils 9.11). So a
+fixture "home-manager link" pointing at a writable copy of the shipped file
+survives `cp -f` as a link with identical bytes, and a check built on it cannot
+go red. Make the target read-only, as a store link is, and give it content that
+differs from what would be written (#1319's review).
+
+## The restart notice: decided in a runCommand, delivered by nothing here
+
+`checks.shell-session` varies the variable #1306 is about: the live
+shell's tree against the tree a switch activated. Every other check logs in
+after the switch, so the two are always equal there. It proves the
+decision, the replace-not-stack id, that an id from a restarted shell is
+never reused, that a dev-linked tree is left alone and that a failed
+notifier fails nothing. `checks.options` (`syncSessionOffersActivatedTree`)
+proves activation passes the generated tree, and only on NixOS.
+
+**Nothing proves delivery.** Home Manager's activation does receive the
+session bus: `hm-setup-env` imports `DBUS_SESSION_BUS_ADDRESS`,
+`WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` from the user manager. But no check
+shows the shell's server accepting the notice, or a click moving the menu
+and new terminals. `checks.session` could, with a switch inside the VM,
+which is a VM run for one notice. It is a manual step on a real desktop,
+recorded in #1306's PR.
+
+**A switch stalls the shell's notification server for up to about 20 s.**
+Measured on p620: a 3 s stall, then a 16 s one, while the theme engine reloads
+the plugins. So the notice is delivered by a `systemd-run --user` unit, and
+never inside the activation. **systemd expands `$` in that unit's argv**, so a
+`bash -c '…${x%/*}…'` string arrives mangled. The helper runs its own
+`deliver` action instead. `shell-session`'s fake `systemd-run` refuses a `$`,
+so that case can go red.

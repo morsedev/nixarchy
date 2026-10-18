@@ -1922,6 +1922,8 @@
             # Every pipe into grep -q is rewritten or allowlisted with a reason (#1060).
             "grep-q-pipefail"
             "hardware-modules"
+            # The Hibernate row's logind answer, in a VM with resume configured (#1303). Needs KVM.
+            "hibernate-resume"
             # The profile a user with their own interpreter actually gets, built
             # rather than inspected: #809's collision only exists once something
             # calls buildEnv. See tests/home-profile.nix.
@@ -2026,6 +2028,8 @@
             # is on, all of it overridable. See tests/preview-variant.nix
             # and #487.
             "preview-variant"
+            # First login seeds only missing launchers and stubs (#1319).
+            "provision-launchers"
             # The reinstall image (#478): installer/cd.nix over a USER machine
             # instead of the reference set, installed offline and booted. Asserts
             # copy-never-build and that the machine that boots is the closure the
