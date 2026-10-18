@@ -14,6 +14,8 @@
   "install.style.font.victor" = "session: restarts the user's shell unit";
   "install.style.theme" =
     "unreached: theme-set-hermes runs omarchy-install-hermes-cli --check only; its user-unit stop is the --now branch";
+  "learn.keybindings" =
+    "unreached: omarchy-menu-keybindings runs omarchy-language with no argument, which only prints the language; its shell restart is the set branch";
   "remove.development.elixir.phoenix" =
     "hidden: its elixir|phoenix arm removes Elixir and Erlang (decision 3)";
   "remove.development.php.laravel" =
