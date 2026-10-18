@@ -55,6 +55,7 @@
   wireplumber,
   # provides `wpctl`
   playerctl,
+  procps,
   bluez,
   bluez-tools,
   # provides `bluetoothctl`
@@ -233,6 +234,8 @@ let
     pulseaudio
     wireplumber
     playerctl
+    # pgrep: omarchy-hyprland-session-lock-stranded asks whether another locker runs
+    procps
     bluez
     bluez-tools
     networkmanager
@@ -964,7 +967,9 @@ stdenvNoCC.mkDerivation {
           exit 1
         fi
 
-        if ! omarchy-cmd-browser-handoff "$browser_exec" --app='
+        if ! omarchy-cmd-browser-handoff "$browser_exec" --app=' \
+              --replace-fail 'exec setsid uwsm-app -- $browser_exec' \
+              'exec setsid uwsm-app -- "$browser_exec"'
 
             # Why: pkgs/AGENTS.md#the-browser-theme-policy-and-why-402-broke-it
             #
@@ -1302,7 +1307,19 @@ stdenvNoCC.mkDerivation {
                       #
                       # Only the filename changes; Name= still reads "Zoom", so the launcher
                       # shows what upstream shows.
-                      install -m644 "$desktop" "$out/share/applications/omarchy-$base"
+                      # omarchy-browser.desktop keeps its name: no package ships an entry
+                      # with Omarchy's own name, and mimeapps lists name it unprefixed.
+                      case "$base" in
+                        omarchy-browser.desktop) install -m644 "$desktop" "$out/share/applications/$base" ;;
+                        *) install -m644 "$desktop" "$out/share/applications/omarchy-$base" ;;
+                      esac
+                    done
+
+                    # Every entry a shipped mimeapps list names must exist, or links open nothing.
+                    for list in $out/share/omarchy/config/*mimeapps.list; do
+                      for id in $(sed -n 's/^[^#=]*=//p' "$list" | tr ';' ' '); do
+                        [ -e "$out/share/applications/$id" ] || { echo "$list names $id, which is not installed" >&2; exit 1; }
+                      done
                     done
 
                     # The one place a shipped entry is named rather than merely launched.

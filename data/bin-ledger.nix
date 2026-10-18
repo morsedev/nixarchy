@@ -270,6 +270,16 @@
     reason = "Vendored unchanged. Blacklists xpad in /etc/modprobe.d, loads hid_xpadneo, and adds $USER to the input group. All three are declarative here -- boot.blacklistedKernelModules, boot.kernelModules and extraGroups -- so the imperative run does not survive a rebuild.";
     allow = "account-tools etc-write modprobe";
   };
+  "omarchy-install-hermes-cli" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Stops omarchy-hermes-theme.service on --now only; stopping a user unit is session state and carries no configuration.";
+    allow = "systemctl-user";
+  };
+  "omarchy-install-openclaw-cli" = {
+    class = "vendor";
+    reason = "Vendored unchanged. Stops, disables and queries the openclaw-<role> user units it installed; user-unit state, not configuration.";
+    allow = "systemctl-user";
+  };
   "omarchy-install-preinstalls" = {
     class = "replace";
     reason = "Upstream reseeds through omarchy-refresh-applications and its mise stubs, then exits on omarchy-pkg-add so the marker never clears. Seeds through nix-bin's omarchy-refresh-applications, writes no stubs, and clears the marker (#1304, #1319).";
@@ -321,7 +331,7 @@
   };
   "omarchy-launch-webapp" = {
     class = "patch";
-    reason = "Four edits: the desktop-file search paths, the chromium-browser.desktop fallback name, `chromium*` added to the browser case, and `env -u BROWSER` around xdg-settings -- the last upstream's own bug.";
+    reason = "Four edits: the desktop-file search paths, the chromium-browser.desktop fallback name, `chromium*` added to the browser case, and the no-browser message. The `env -u BROWSER` edit went in 4.0.5: upstream's omarchy-cmd-default-browser does it now.";
   };
   "omarchy-menu" = {
     class = "patch";
@@ -522,7 +532,7 @@
   };
   "omarchy-restart-shell" = {
     class = "patch";
-    reason = "Resolve the running tree before stopping the shell, then launch the current-system tree through its absolute launcher path. Neither stopping nor relaunching depends on an inherited OMARCHY_PATH or PATH. Keep the bounded teardown and readiness waits (#953).";
+    reason = "Resolve the running tree before stopping the shell, then launch the current-system tree through its absolute launcher path. Neither stopping nor relaunching depends on an inherited OMARCHY_PATH or PATH.";
     allow = "systemctl-user";
   };
   "omarchy-restart-trackpad" = {
