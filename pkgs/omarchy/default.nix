@@ -496,6 +496,15 @@ stdenvNoCC.mkDerivation {
                         'cp -r "$OMARCHY_THEMES_PATH/$THEME_NAME/"* "$NEXT_THEME_PATH/"' \
                         'cp -r --no-preserve=mode "$OMARCHY_THEMES_PATH/$THEME_NAME/"* "$NEXT_THEME_PATH/"'
 
+                    # CARRIED (#1368): an AppImage here runs through appimage-run (binfmt), which
+                    # passes --appimage-extract to the app instead of extracting. Quattro only.
+                    if [ -e $out/share/omarchy/bin/omarchy-install-t3code-app ]; then
+                      substituteInPlace $out/share/omarchy/bin/omarchy-install-t3code-app \
+                        --replace-fail '  "$download" --appimage-extract t3code.desktop >/dev/null' \
+                                       '  { command -v appimage-run >/dev/null || { echo "Installing T3 Code needs AppImage support: programs.appimage.enable = true;" >&2; exit 1; }; } && appimage-run -x squashfs-root "$download" >/dev/null' \
+                        --replace-fail "  \"\$download\" --appimage-extract 'usr/share/icons/hicolor/*/apps/t3code.png' >/dev/null" ""
+                    fi
+
                     # Cursor resolves through PATH, because /usr/bin is not where anything
                     # lives here.
                     #
