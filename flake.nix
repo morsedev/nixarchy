@@ -626,6 +626,8 @@
         ];
       };
 
+      # nixarchy's own pins, which a consumer's overrides never change (#1371)
+      ownLock = builtins.fromJSON (builtins.readFile ./flake.lock);
       # Why: docs/internals/flake.md#which-nixarchy-built-this-machine-208-for-nixarchy
       nixarchyRev = self.shortRev or self.dirtyShortRev or "unknown";
       #
@@ -909,7 +911,11 @@
 
         omarchy = final.callPackage ./pkgs/omarchy {
           src = omarchy;
-          version = omarchyVersion;
+          version = import ./pkgs/omarchy/version-label.nix {
+            version = omarchyVersion;
+            pinnedRev = ownLock.nodes.${ownLock.nodes.root.inputs.omarchy}.locked.rev or null;
+            input = omarchy;
+          };
           inherit nixarchyRev nixarchyDate;
           # The compositor the Lua config is written against, not nixpkgs'.
           inherit (hyprland.packages.${final.stdenv.hostPlatform.system}) hyprland;
@@ -2476,6 +2482,26 @@
             omarchy = self.packages.${system}.omarchy;
             omarchySrc = omarchy;
           };
+          # #1368: no shipped script may self-extract an AppImage; appimage-run passes the flag to the app.
+          appimage-extract = import ./tests/appimage-extract.nix {
+            pkgs = pkgsFor.${system};
+            omarchy = self.packages.${system}.omarchy;
+          };
+          omarchy-version-label = import ./tests/omarchy-version-label.nix {
+            pkgs = pkgsFor.${system};
+            omarchy = self.packages.${system}.omarchy;
+            inherit omarchyVersion;
+          };
+          # #1370: omarchy-restart-terminal must reach nixpkgs' wrapped kitty and ghostty.
+          restart-terminal-wrapped = import ./tests/restart-terminal-wrapped.nix {
+            pkgs = pkgsFor.${system};
+            omarchy = self.packages.${system}.omarchy;
+          };
+          # #1370: a theme-engine machine's omarchy-theme-gnome unit re-applies the GTK theme.
+          theme-gnome-gtk = import ./tests/theme-gnome-gtk.nix {
+            inherit inputs;
+            pkgs = pkgsFor.${system};
+          };
 
           # What reaches nixarchy.cachix.org and what it costs: the allowlist
           # budget, proofs pushed alone, closures from main only (#697). Against
@@ -2657,6 +2683,10 @@
           install-teardown = import ./tests/install-teardown.nix {
             pkgs = pkgsFor.${system};
           };
+
+          # wait_for_multi_user prints what systemd is stuck on, bounded, and
+          # re-raises the original failure (#1365). Stub machines, no VM.
+          boot-diagnostics = import ./tests/boot-diagnostics.nix { pkgs = pkgsFor.${system}; };
 
           vm-toplevel = self.nixosConfigurations.vm.config.system.build.toplevel;
 

@@ -492,6 +492,23 @@ stdenvNoCC.mkDerivation {
                         'cp -r "$OMARCHY_THEMES_PATH/$THEME_NAME/"* "$NEXT_THEME_PATH/"' \
                         'cp -r --no-preserve=mode "$OMARCHY_THEMES_PATH/$THEME_NAME/"* "$NEXT_THEME_PATH/"'
 
+                    # CARRIED (#1368): an AppImage here runs through appimage-run (binfmt), which
+                    # passes --appimage-extract to the app instead of extracting. Quattro only.
+                    if [ -e $out/share/omarchy/bin/omarchy-install-t3code-app ]; then
+                      substituteInPlace $out/share/omarchy/bin/omarchy-install-t3code-app \
+                        --replace-fail '  "$download" --appimage-extract t3code.desktop >/dev/null' \
+                                       '  { command -v appimage-run >/dev/null || { echo "Installing T3 Code needs AppImage support: programs.appimage.enable = true;" >&2; exit 1; }; } && appimage-run -x squashfs-root "$download" >/dev/null' \
+                        --replace-fail "  \"\$download\" --appimage-extract 'usr/share/icons/hicolor/*/apps/t3code.png' >/dev/null" ""
+                    fi
+
+                    # CARRIED (#1370): nixpkgs wraps kitty (and may wrap ghostty), so the running
+                    # process is .kitty-wrapped, and an exact match on the bare name misses it.
+                    substituteInPlace $out/share/omarchy/bin/omarchy-restart-terminal \
+                      --replace-fail 'if pgrep -x kitty >/dev/null; then' "if pgrep -x '[.]?kitty(-wrapped)?' >/dev/null; then" \
+                      --replace-fail '  killall -SIGUSR1 kitty >/dev/null' "  pkill -USR1 -x '[.]?kitty(-wrapped)?' >/dev/null" \
+                      --replace-fail 'if pgrep -x ghostty >/dev/null; then' "if pgrep -x '[.]?ghostty(-wrapped?)?' >/dev/null; then" \
+                      --replace-fail '  killall -SIGUSR2 ghostty' "  pkill -USR2 -x '[.]?ghostty(-wrapped?)?'"
+
                     # Cursor resolves through PATH, because /usr/bin is not where anything
                     # lives here.
                     #
