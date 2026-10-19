@@ -1236,17 +1236,17 @@
     "omarchy": {
       "flake": false,
       "locked": {
-        "lastModified": 1792312401,
-        "narHash": "sha256-t4oVowuHmXb61BtfYKs8jt9QxgBzfqPQ7skCbaQubYo=",
+        "lastModified": 1792376022,
+        "narHash": "sha256-bJvjg4u1E/g2MBWrPtU1QFxr0xqkUYkjRdlrGWimLaQ=",
         "owner": "basecamp",
         "repo": "omarchy",
-        "rev": "a6dcc31b6429fcf25e9e6bf90179f84c602cbf4e",
+        "rev": "81fd2d23ca6e3462183a4dc8360de3113fa8d80c",
         "type": "github"
       },
       "original": {
         "owner": "basecamp",
         "repo": "omarchy",
-        "rev": "a6dcc31b6429fcf25e9e6bf90179f84c602cbf4e",
+        "rev": "81fd2d23ca6e3462183a4dc8360de3113fa8d80c",
         "type": "github"
       }
     },
