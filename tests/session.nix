@@ -1861,6 +1861,15 @@ pkgs.testers.runNixOSTest {
                "omarchy-install-service-sunshine", "omarchy-plymouth-current",
                "omarchy-dev-link", "omarchy-dev-pkg-test", "omarchy-dev-status",
                "omarchy-dev-unlink",
+               # New in quattro. Every /usr is inside the AppImage it just
+               # extracted (squashfs-root/usr/...), or a string compared with
+               # the target of a ~/.local/bin/t3 link an Arch package made.
+               "omarchy-install-t3code-app", "omarchy-remove-ai-t3-code",
+               # Quattro. Reads /usr/share/omarchy-platform/fingerprint-readers
+               # behind -r: a file only a platform package (omarchy-mac, Apple
+               # Silicon) writes. Absent here, so detection is the USB scan, as
+               # on every non-Mac Omarchy.
+               "omarchy-hw-fingerprint",
                # These four spell /usr/share/omarchy only as the default in
                # a shell parameter expansion on OMARCHY_PATH, or compare against
                # tell a packaged install from a checkout. OMARCHY_PATH is always
@@ -2372,12 +2381,13 @@ pkgs.testers.runNixOSTest {
     # store is world-readable.
     aim(f"omarchy-theme-bg-set {owe_video_path}")
 
-    # owed's switch_to_shell/switch_to_renderer path transcodes before the
-    # renderer reports alive, so this is the longer poll in the block.
+    # owe >= 0.2.11 keeps the shell's still until the video's first frame,
+    # then sets engine (omacom/owe#17), so the poll waits for that too.
     status = None
     for _ in range(30):
         status = owe_status()
-        if status.get("source_kind") in ("video", "gif") and status.get("render_alive"):
+        if (status.get("source_kind") in ("video", "gif") and status.get("render_alive")
+                and status.get("engine") == "renderer"):
             break
         machine.sleep(2)
     assert status is not None and status.get("source_kind") in ("video", "gif"), (
