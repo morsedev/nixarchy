@@ -2477,12 +2477,20 @@ pkgs.testers.runNixOSTest {
     # LockFeedSurface.qml (its Loader is `active: video && loadBackground
     # && ...`) and therefore `import Owe.LockFeed`.
     aim(f"omarchy-theme-bg-set {owe_video_path}")
+    # Locking before the first frame cancels owe >= 0.2.11's handoff (the lock
+    # pauses the renderer), so wait for engine as the first poll does.
     for _ in range(30):
         status = owe_status()
-        if status.get("source_kind") in ("video", "gif") and status.get("render_alive"):
+        if (status.get("source_kind") in ("video", "gif") and status.get("render_alive")
+                and status.get("engine") == "renderer"):
             break
         machine.sleep(2)
+    assert status.get("source_kind") in ("video", "gif"), (
+        f"owe status does not report the video set before locking: {status}")
     assert status.get("render_alive"), f"video did not re-arm before locking: {status}"
+    assert status.get("engine") == "renderer", (
+        f"owe's renderer is alive but engine is {status.get('engine')!r} -- the "
+        f"handoff did not finish before locking: {status}")
 
     # No IPC route exists for the lock screen's feed loader: Service.qml's
     # IpcHandler exposes only lock/isLocked/status/preview/hidePreview, none
