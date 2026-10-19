@@ -530,6 +530,10 @@
     reason = "Vendored unchanged. `rfkill unblock bluetooth` and a `rfkill list`: runtime radio state, same as omarchy-bluetooth-power.";
     allow = "rfkill";
   };
+  "omarchy-install-t3code-app" = {
+    class = "patch";
+    reason = "It ran the downloaded AppImage with --appimage-extract. On nixarchy an AppImage runs through appimage-run, which passes that flag to the app instead of extracting, so the install failed. The patch extracts with `appimage-run -x squashfs-root` (#1368).";
+  };
   "omarchy-restart-shell" = {
     class = "patch";
     reason = "Resolve the running tree before stopping the shell, then launch the current-system tree through its absolute launcher path. Neither stopping nor relaunching depends on an inherited OMARCHY_PATH or PATH.";
