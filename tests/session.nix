@@ -1861,6 +1861,15 @@ pkgs.testers.runNixOSTest {
                "omarchy-install-service-sunshine", "omarchy-plymouth-current",
                "omarchy-dev-link", "omarchy-dev-pkg-test", "omarchy-dev-status",
                "omarchy-dev-unlink",
+               # New in quattro. Every /usr is inside the AppImage it just
+               # extracted (squashfs-root/usr/...), or a string compared with
+               # the target of a ~/.local/bin/t3 link an Arch package made.
+               "omarchy-install-t3code-app", "omarchy-remove-ai-t3-code",
+               # Quattro. Reads /usr/share/omarchy-platform/fingerprint-readers
+               # behind -r: a file only a platform package (omarchy-mac, Apple
+               # Silicon) writes. Absent here, so detection is the USB scan, as
+               # on every non-Mac Omarchy.
+               "omarchy-hw-fingerprint",
                # These four spell /usr/share/omarchy only as the default in
                # a shell parameter expansion on OMARCHY_PATH, or compare against
                # tell a packaged install from a checkout. OMARCHY_PATH is always
