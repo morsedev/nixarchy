@@ -605,6 +605,10 @@ stdenvNoCC.mkDerivation {
                           '{~/.local,~/.nix-profile,/etc/profiles/per-user/$USER,/run/current-system/sw,/usr}/share/applications'
                     done
 
+                    # Why: pkgs/AGENTS.md#launch-browser-refuses-to-launch-itself-1342
+                    substituteInPlace $out/share/omarchy/bin/omarchy-launch-browser \
+                      --replace-fail 'if $browser_exec --help 2>/dev/null | grep -q MOZ_LOG; then' "$(cat ${./1342-launch-browser-self-call.sh})"
+
                     # RetroArch loads its cores from /usr/lib/libretro upstream. nixpkgs puts
                     # them inside the wrapper's own store path. The menu resolves that path
                     # now; the installer saves the stable system-profile path. Without either,
@@ -2105,6 +2109,10 @@ stdenvNoCC.mkDerivation {
                     substituteInPlace $out/share/omarchy/shell/plugins/menu/Menu.qml \
                       --replace-fail "  function openExistingMenu(initialMenu) {"$'\n'"    requestSerial += 1" "$(cat ${./1305-menu-release-displaced.js})"$'\n\n'"  function openExistingMenu(initialMenu) {"$'\n'"    root.releaseDisplacedRequest()"$'\n'"    requestSerial += 1" \
                       --replace-fail "  function openDmenu(payload) {"$'\n'"    requestSerial += 1" "  function openDmenu(payload) {"$'\n'"    root.releaseDisplacedRequest()"$'\n'"    requestSerial += 1"
+
+                    # Why: pkgs/AGENTS.md#the-menu-fits-its-widest-label-1339
+                    substituteInPlace $out/share/omarchy/shell/plugins/menu/Menu.qml \
+                      --replace-fail '  property int cardWidth: Math.min(root.dmenuActive ? Style.space(root.dmenuWidth) : ((root.activeMenu === "trigger.capture.screenrecord" || root.activeMenu === "style.font" || root.activeMenu === "style.font.cjk") ? Style.space(520) : Style.space(300)), panel.width - Style.gapsOut * 2)' "$(cat ${./1339-menu-fit-width.qml})"
 
                     # Wear the snowflake.
                     substitute ${./menu-bar-widget.qml} \

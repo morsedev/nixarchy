@@ -361,7 +361,7 @@
     # No flake upstream, so nothing to follow; a commit on master, bumped the
     # way that page says.
     nixarchy-herdr = {
-      url = "github:olafkfreund/nixarchy-herdr/5bb2796e00ac549ec8e9923876fc799d6184f04d";
+      url = "github:olafkfreund/nixarchy-herdr/3ce75fb3f15fe3d388f910898fcfab9d1747189b";
       flake = false;
     };
 
@@ -1167,8 +1167,10 @@
           # that: nixi's own Home Manager module already defaults
           # `services.nixi.package` to its flake's package, and because that
           # flake follows this nixpkgs it is the same derivation this line
-          # names. An overlay attribute would be a second way to spell one
-          # package and a second thing to keep in step.
+          # names, bar one thing: nixarchy overrides its `omarchySrc` (#1314),
+          # so `checks.nixi` guards the pin while `checks.menu-model-merge`
+          # builds the package users get. An overlay attribute would be a
+          # second way to spell one package and a second thing to keep in step.
           #
           # Not in data/apps.nix either. That catalogue is for things that are
           # a package: install it and it is there. Nixi is a package plus a user
@@ -2557,9 +2559,25 @@
           menu-model-merge = import ./tests/menu-model-merge.nix {
             pkgs = pkgsFor.${system};
             omarchy = self.packages.${system}.omarchy;
+            menuPlugin =
+              self.nixosConfigurations.vm.config.home-manager.users.omarchy.programs.nixarchy.defaultPluginSet.menu.src;
+            nixi = self.nixosConfigurations.vm.config.home-manager.users.omarchy.services.nixi.package;
           };
 
-          # #1305: Right never runs a menu row, and a displaced request releases its caller.
+          # #1342: a default browser entry that runs the launcher itself is refused.
+          launch-browser-self-call = import ./tests/launch-browser-self-call.nix {
+            pkgs = pkgsFor.${system};
+            omarchy = self.packages.${system}.omarchy;
+          };
+
+          # #1342: the login hook seeds the mimeapps list only into nothing.
+          seed-hyprland-mimeapps = import ./tests/seed-hyprland-mimeapps.nix {
+            pkgs = pkgsFor.${system};
+            script = ./pkgs/seed-hyprland-mimeapps.sh;
+          };
+
+          # #1305: Right never runs a menu row, and a displaced request releases its caller,
+          # and the card fits its widest label (#1339).
           menu-keys = import ./tests/menu-keys.nix {
             pkgs = pkgsFor.${system};
             omarchy = self.packages.${system}.omarchy;
