@@ -382,6 +382,14 @@ jobs:
           echo "::error::quattro is red and there is no earlier pin that builds; nothing was published"
           exit 1
 
+      # What failed, last, where a reader of the log ends up (#1384). Reads the
+      # log build-unless-proven.sh keeps; never changes this job's status.
+      - name: Failure digest
+        id: digest
+        if: failure()
+        continue-on-error: true
+        run: .github/scripts/failure-digest.sh
+
   # Its own hosted job: three hours of sleeping must not hold a VM runner.
   wait-idle:
     needs: prepare
@@ -437,6 +445,9 @@ jobs:
         id: vms
         run: |
           set -uo pipefail
+          # Keep a copy for the Failure digest step (#1384); not `| tee`, which
+          # would need pipefail on every build.
+          exec > >(tee -a "${RUNNER_TEMP:-/tmp}/build.log") 2>&1
           failed=""
           for c in options session coexist plugin; do
             echo "::group::$c"
@@ -459,6 +470,14 @@ jobs:
           bash .github/scripts/edge-promote.sh origin "$CANDIDATE" "$EXPECTED"
           echo "promoted=true" >> "$GITHUB_OUTPUT"
           echo "edge is now $CANDIDATE" >> "$GITHUB_STEP_SUMMARY"
+
+      # What failed, last, where a reader of the log ends up (#1384). Reads the
+      # log build-unless-proven.sh keeps; never changes this job's status.
+      - name: Failure digest
+        id: digest
+        if: failure()
+        continue-on-error: true
+        run: .github/scripts/failure-digest.sh
 
   # One rolling issue. No continue-on-error anywhere in this job: if it cannot
   # read or write the issue it must fail the run, or a broken edge fails

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Builds .#omarchy and the generated checks, each separately (omarchy-edge.yml).
 set -uo pipefail
+# Keep a copy for the Failure digest step (#1384).
+exec > >(tee -a "${RUNNER_TEMP:-/tmp}/build.log") 2>&1
 failed=""
 try() {
   local name=$1
