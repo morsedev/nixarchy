@@ -62,34 +62,47 @@ Approved decisions, carried from the spec:
      reproduces.
 3. Commit, open the PR, and set auto-merge.
 
-**B. nixi** (`coder` for B2; lead for B1, B3 and B4)
+**B. Qt 6.12's `Color` shadowing** (revised with the spec, 2026-10-20)
 
-1. **The repro** (lead), on the bumped nixpkgs's Qt 6.12 `qml` tool,
-   offscreen. A `Commons/qmldir` with a `Color` singleton, plus a file
-   that imports `QtQuick`, `QtQuick.Controls` and `Commons` and prints
-   `Color.menu`. Run it:
-   - with `QtQuick.Controls`;
-   - without it;
-   - and on Qt 6.11.
+B1, the repro, is **done**: Qt 6.12's `QtQuick` has its own `Color`
+singleton, and `Commons.Color` works on both versions. That matches
+upstream's omacom/omarchy#14553.
 
-   Record the three results. If they do not show `QtQuick.Controls`
-   shadowing on 6.12 alone, **stop**.
-2. **The fix** (coder), in a clone of `olafkfreund/nixi-nixarchy` under
-   `/mnt/data/vmtest`, on a branch: in every `.qml` that references
-   `Color.` or `Style.` and imports `qs.Commons`, add
-   `import qs.Commons as Commons` and qualify every reference.
-   - Verify by grepping: no unqualified `Color.` or `Style.` remains in
-     those files.
-   - Trap: do not touch identifiers that merely contain the letters, such
-     as `textColor`. Match `\bColor\.` and `\bStyle\.`.
-3. **Release** (lead): open the PR in nixi-nixarchy, and its maintainer
-   (the owner) merges it.
-4. **Pin** (lead): `flake.nix:258` points at the merged commit, plus one
-   line on the comment's change list, then `nix flake update nixi`.
-   **Prove:** `checks.session` is green on today's nixpkgs (Qt 6.11), and
-   green on a scratch tree with the bumped nixpkgs (Qt 6.12). The red is
-   #1378's run with the old pin. `session` is a VM check, so run it only
-   when CI is idle.
+2. **Coder: 16 plugin repositories.**
+   - For each of ai-mirror, nixarchy-{devenv, distrobox, flatsnap, ghtui,
+     gliff-manager, gltui, herdr, hyprsettngs, menu, microvm, pkg,
+     plugin-browser, podman, voice} and nixi-nixarchy (all
+     `olafkfreund/*`), clone under `/mnt/data/vmtest/qt612/<repo>`, at
+     the commit nixarchy pins (flake.lock), on a branch
+     `fix/qt612-commons-color`.
+   - In every `.qml` with an unqualified `\bColor\.`:
+     - add `import qs.Commons as Commons` after `import qs.Commons`, if it
+       is missing;
+     - replace `\bColor\.` with `Commons.Color.`.
+   - Leave `Style.` alone. Change nothing else.
+   - Verify with `grep -rnE '(^|[^.A-Za-z_])Color\.[a-z]' --include=*.qml`:
+     no matches.
+   - Commit (`Qualify Commons.Color for Qt 6.12, which adds a QtQuick
+     Color singleton that shadows it`), push the branch, and open a PR
+     in that repo linking nixarchy #1381. The owner merges them.
+3. **Lead: `pkgs/rebuild-panel/{Panel,RebuildView}.qml`.** The same edit,
+   in this repository.
+4. **Lead: the guard**, `tests/qml-color-qualified.nix`:
+   - a `runCommand` over each plugin input's source (`inputs.<name>`) and
+     `../pkgs/rebuild-panel`, which greps for that pattern and fails
+     printing `file:line` for each match;
+   - registered in `flake.nix` beside the other cheap checks;
+   - red on `main` today (17 trees); the run is recorded.
+5. **Lead: pins**, once the owner has merged the plugin PRs.
+   - Move each pin to its merged commit in `flake.nix` (URL rev and
+     comment line), then `nix flake update <inputs…>`.
+   - **Prove:**
+     - the guard is green;
+     - it is red with one `Commons.Color.` reverted in a scratch tree,
+       naming the file;
+     - `checks.session` is green on a scratch tree with nixpkgs 09063bd;
+       #1378's run is the red.
+   - Open one PR with steps 3, 4 and 5, `Closes #1381`.
 
 **C. VirtualBox** (lead)
 
@@ -145,3 +158,29 @@ C's overlay.
   tree with nixpkgs 09063bd is green with the change, and red without it,
   with the same `conflicting subpath ... modules.builtin.bin` CI showed
   on #1378.
+- **B2 covered 17 repositories, not 16.** The guard derives its list from
+  `defaultPluginSet`, and that found `omatheme` (`olafkfreund/nixarchy-omatheme`),
+  which the input scan had missed. Its unqualified references came from two
+  places:
+  - its own `pkgs/patches/omarchroma-panel.patch`, fixed in the patch;
+  - upstream omarchroma at the pinned 7048180, which upstream fixed in
+    3.2.3. Our patch does not apply to 3.2.4 (2 hunks, against new
+    settings/about panels), so the package's `postPatch` qualifies
+    `Panel.qml` and adds the `Commons` alias, marked `shortcut:` until the
+    input is at least 3.2.3. That is nixarchy-omatheme#59.
+- **herdr's own test** (`tests/session-actions.cjs`) stubbed a `Color`
+  global for `themeColor()`. One line stubs `Commons.Color` too
+  (nixarchy-herdr#19, red `ReferenceError` on its CI before the fix).
+- **Five pins take the old commit plus only the Qt fix.** Five pins were
+  behind their repo's default branch: distrobox (+10), hyprsettngs (+91),
+  microvm (+2), voice (+13) and nixi (+26). The first Qt 6.12 `session`
+  run on their heads failed, because hyprsettngs' unreleased commits
+  renamed its plugin id (`aziz.hyprforge` → `nixarchy.hyprlandsettings`),
+  which nixarchy's build guard refuses. So each is pinned to a
+  `nixarchy/qt612-on-pin` branch: the old pin plus the cherry-picked fix,
+  whose diff equals the merged PR's. Their other work arrives with its own
+  bump.
+- **omatheme is pinned by commit** (51fb129), not by the `v0.1.0` tag,
+  because the fix is one commit past the tag.
+- **Per-pin comment lines are not added.** The guard's comment in
+  `flake.nix` explains every pin move in this PR.
