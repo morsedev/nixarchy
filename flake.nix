@@ -79,7 +79,7 @@
     hyprland.url = "github:hyprwm/Hyprland";
 
     omarchy = {
-      url = "github:basecamp/omarchy/4f920a2022c51409dfc57c7f812ced159621b99f";
+      url = "github:basecamp/omarchy/0a7beb7d6fe2b677bdc57ff05518b073b2d6ee60";
       flake = false;
     };
 
@@ -534,7 +534,7 @@
         ) boxImagePins
       );
 
-      omarchyVersion = "edge-20261020-4f920a2";
+      omarchyVersion = "edge-20261020-0a7beb7";
 
       # home-manager, matched to whichever nixpkgs this is being evaluated
       # against (#525).
@@ -2484,6 +2484,12 @@
           };
           # #1368: no shipped script may self-extract an AppImage; appimage-run passes the flag to the app.
           appimage-extract = import ./tests/appimage-extract.nix {
+            pkgs = pkgsFor.${system};
+            omarchy = self.packages.${system}.omarchy;
+          };
+          # #1385: the passwordless-sudo toggle is hidden in the menu and the bar.
+          passwordless-sudo-hidden = import ./tests/passwordless-sudo-hidden.nix {
+            inherit inputs;
             pkgs = pkgsFor.${system};
             omarchy = self.packages.${system}.omarchy;
           };

@@ -879,6 +879,18 @@ stdenvNoCC.mkDerivation {
                   --replace-fail 'as_root rm -f /etc/pam.d/omarchy-lock-fingerprint "$resume_hook_dst"' \
                   'as_root rm -f /etc/pam.d/omarchy-lock-fingerprint'
 
+                # #1385: sudo is configuration on NixOS, so the bar's passwordless-sudo indicator is neutered and unoffered.
+                substituteInPlace $out/share/omarchy/shell/plugins/bar/indicators/PasswordlessSudo.qml \
+                  --replace-fail '  active: granted' '  visible: false; active: granted' \
+                  --replace-fail '    if (!root.bar) return' '    return'
+                ${jq}/bin/jq 'del(.barWidget.schema[].options[]? | select(.value == "PasswordlessSudo"))' \
+                  $out/share/omarchy/shell/plugins/bar/widgets/Indicators.manifest.json > indicators.manifest.tmp
+                cat indicators.manifest.tmp > $out/share/omarchy/shell/plugins/bar/widgets/Indicators.manifest.json
+                if grep -q PasswordlessSudo $out/share/omarchy/shell/plugins/bar/widgets/Indicators.manifest.json; then
+                  echo "#1385: PasswordlessSudo is still offered in Indicators.manifest.json" >&2
+                  exit 1
+                fi
+
                 # quattro's /usr paths that a nixarchy session actually reaches (#1278).
                 # The input-method and font tools run stdlib-only Python helpers.
                 for f in omarchy-font-cjk omarchy-input-method omarchy-setup-input \
