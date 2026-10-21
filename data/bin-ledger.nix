@@ -196,7 +196,11 @@
   };
   "omarchy-default-browser" = {
     class = "patch";
-    reason = "It names chromium.desktop, which nixpkgs calls chromium-browser.desktop, so setting the browser exited 1 having set nothing and the no-argument read printed the raw desktop id. It also names zen.desktop; nixarchy's Zen is the zen-browser flake's beta, which installs zen-beta.desktop, so the setter set a desktop id that does not exist and the reader never answered zen (#1303).";
+    reason = "It names chromium.desktop, which nixpkgs calls chromium-browser.desktop, so setting the browser exited 1 having set nothing and the no-argument read printed the raw desktop id. It also names zen.desktop; nixarchy's Zen is the zen-browser flake's beta, which installs zen-beta.desktop, so the setter set a desktop id that does not exist and the reader never answered zen (#1303). Quattro also probes `zen-browser` before setting, and nixarchy's binary is `zen-beta` (#1398).";
+  };
+  "omarchy-default-editor" = {
+    class = "patch";
+    reason = "quattro's setter installs an editor it thinks is missing, and probes `helix`, which nixpkgs installs as `hx`. So choosing an installed Helix tried an Arch install and set nothing (#1398).";
   };
   "omarchy-dev-install-ydoo" = {
     class = "vendor";

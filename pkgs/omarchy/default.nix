@@ -1382,6 +1382,12 @@ stdenvNoCC.mkDerivation {
                         --replace-fail 'zen.desktop' 'zen-beta.desktop'
                     done
 
+                    # #1398: quattro's setters install a missing app; nixpkgs' helix is `hx`, nixarchy's Zen is `zen-beta`.
+                    substituteInPlace $out/share/omarchy/bin/omarchy-default-editor \
+                      --replace-fail 'if omarchy-cmd-missing "$editor"; then' 'if omarchy-cmd-missing "$([[ $editor == helix ]] && echo hx || echo "$editor")"; then'
+                    substituteInPlace $out/share/omarchy/bin/omarchy-default-browser \
+                      --replace-fail 'command="zen-browser"' 'command="zen-beta"'
+
                     # #1303: tests/AGENTS.md#menu-conditions-and-hibernate-resume
                     substituteInPlace $out/share/omarchy/bin/omarchy-launch-editor \
                       --replace-fail 'omarchy-cmd-present "$editor" || editor="nvim"' \
