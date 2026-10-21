@@ -1217,6 +1217,11 @@ stdenvNoCC.mkDerivation {
                       --replace-fail 'agent=$(omarchy-default-agent)' '[ -d "$HOME/.local/share/mise/shims" ] && PATH="$HOME/.local/share/mise/shims:$PATH"; agent=$(omarchy-default-agent)' \
                       --replace-fail 'omp)' 'antigravity) command=(agy --dangerously-skip-permissions) ;; omp)'
 
+                    # No mise download of an agent nixarchy chose not to install; see
+                    # nix-bin/omarchy-default-agent (#1386).
+                    substituteInPlace $out/share/omarchy/bin/omarchy-agent-account-exec \
+                      --replace-fail '  export MISE_MINIMUM_RELEASE_AGE=0' '  echo "$provider is not installed. nixarchy installs it through Nix: omarchy default agent $provider" >&2; exit 127'
+
                     # Every --replace-fail pattern AND replacement below is a single line
                     # on purpose. `nix fmt` re-indents multi-line strings inside this
                     # expression, which silently breaks a literal match against file

@@ -102,8 +102,8 @@
   };
 
   "mise/conf.d/omarchy-agent-accounts.toml" = {
-    class = "divergent";
-    reason = "mise [wrappers] routing claude, codex and grok through omarchy-agent-account-exec. Not ported: whether nixarchy's mise supports [wrappers], and how it interacts with Nix-installed CLIs, is unverified, so it is not a line or two. Tracked in #1386.";
+    class = "installed";
+    reason = "mise `[wrappers]` routing claude, codex and grok through `omarchy-agent-account-exec`, so `omarchy agent account use` reaches a CLI started in an activated shell. nixpkgs' mise reads `[wrappers]` (2026.10.3, measured). The launchers resolve the account themselves. The exec's mise install fallback is patched to refuse (#1386).";
   };
 
   "mise/conf.d/omarchy-tools.toml" = {

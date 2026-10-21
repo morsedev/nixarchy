@@ -132,6 +132,10 @@
     class = "patch";
     reason = "The prompt is retargeted from `this Omarchy machine` and `reporting upstream to Omarchy` to Nixarchy or Omarchy, so the agent does not reach reporting.md already pointed at Basecamp.";
   };
+  "omarchy-agent-account-exec" = {
+    class = "patch";
+    reason = "Its mise install fallback refuses with exit 127 instead: nixarchy installs claude, codex and grok through Nix, and one it did not install (unfree off) stays not installed (#1386).";
+  };
   "omarchy-install-ai-chatgpt" = {
     class = "patch";
     reason = "The install command launches /usr/bin/chatgpt, which is absent on NixOS; launch the installed command from PATH.";

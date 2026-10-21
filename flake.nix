@@ -2278,6 +2278,13 @@
             omarchy = self.packages.${system}.omarchy;
           };
 
+          # Edge carry (#1386): mise's [wrappers] route claude through the selected
+          # account, and the exec refuses a mise install.
+          agent-account-routing = import ./tests/agent-account-routing.nix {
+            pkgs = pkgsFor.${system};
+            omarchy = self.packages.${system}.omarchy;
+          };
+
           # `nixarchy pkg new` against stub nix-init and nix: the draft is
           # kept when its build fails, the placeholder hash is filled in from
           # the failed build, and a reshaped apps.nix is printed at rather
