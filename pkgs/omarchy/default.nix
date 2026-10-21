@@ -1509,9 +1509,10 @@ stdenvNoCC.mkDerivation {
                       --replace-fail 'echo "Removing $USER from the docker group..."' \
                         "$(cat ${./1304-guidance-sudoless-docker-remove.sh})"
 
+                    # #1398: the guidance runs before the `id` lookup, which the sandbox and a broken PATH cannot reach.
                     substituteInPlace $out/share/omarchy/bin/omarchy-remove-security-fingerprint \
-                      --replace-fail 'echo -e "\e[32mRemoving fingerprint scanner from authentication.\n\e[0m"' \
-                        "$(cat ${./1304-guidance-remove-fingerprint.sh})"
+                      --replace-fail '# Resolve the invoking account before changing authentication or packages.' \
+                        "$(cat ${./1304-guidance-remove-fingerprint.sh})"$'\n'"# Resolve the invoking account before changing authentication or packages."
 
                     substituteInPlace $out/share/omarchy/bin/omarchy-remove-security-fido2 \
                       --replace-fail 'echo -e "\e[32mRemoving FIDO2 device from authentication.\n\e[0m"' \
