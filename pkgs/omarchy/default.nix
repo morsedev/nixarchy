@@ -663,7 +663,7 @@ stdenvNoCC.mkDerivation {
                     # The channel splice goes in front of the FIRST pacman grep, not before the final comparison.
                     # Why: pkgs/AGENTS.md#version-channel-reads-nixos-version
                     substituteInPlace $out/share/omarchy/bin/omarchy-version-channel \
-                      --replace-fail 'if grep -q "https://stable-mirror.omarchy.org/" /etc/pacman.d/mirrorlist; then' 'version=$(nixos-version 2>/dev/null) || exit 1; version=$(printf "%s" "$version" | cut -d" " -f1); [ -n "$version" ] || exit 1; printf "%s\n" "$version"; exit 0; if grep -q "https://stable-mirror.omarchy.org/" /etc/pacman.d/mirrorlist; then'
+                      --replace-fail 'if grep -Eq "https://(arm-)?stable-mirror\.omarchy\.org/" /etc/pacman.d/mirrorlist; then' 'version=$(nixos-version 2>/dev/null) || exit 1; version=$(printf "%s" "$version" | cut -d" " -f1); [ -n "$version" ] || exit 1; printf "%s\n" "$version"; exit 0; if grep -Eq "https://(arm-)?stable-mirror\.omarchy\.org/" /etc/pacman.d/mirrorlist; then'
 
                     # The channel switch is nixarchy-channel's, not pacman's.
                     #
