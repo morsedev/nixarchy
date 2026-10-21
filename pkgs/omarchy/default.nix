@@ -2048,7 +2048,7 @@ stdenvNoCC.mkDerivation {
 
                     # Why: pkgs/AGENTS.md#the-menu-fits-its-widest-label-1339
                     substituteInPlace $out/share/omarchy/shell/plugins/menu/Menu.qml \
-                      --replace-fail '  property int cardWidth: Math.min(root.dmenuActive ? Style.space(root.dmenuWidth) : ((root.activeMenu === "trigger.capture.screenrecord" || root.activeMenu === "style.font" || root.activeMenu === "style.font.cjk") ? Style.space(520) : Style.space(300)), panel.width - Style.gapsOut * 2)' "$(cat ${./1339-menu-fit-width.qml})"
+                      --replace-fail '  property int cardWidth: Math.min(root.dmenuActive ? Style.space(root.dmenuWidth) : ((root.activeMenu === "trigger.capture.screenrecord" || root.activeMenu === "appearance.font") ? Style.space(520) : Style.space(300)), panel.width - Style.gapsOut * 2)' "$(cat ${./1339-menu-fit-width.qml})"
 
                     # Wear the snowflake.
                     substitute ${./menu-bar-widget.qml} \
