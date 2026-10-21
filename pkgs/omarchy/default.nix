@@ -623,8 +623,9 @@ stdenvNoCC.mkDerivation {
                     done
 
                     # Why: pkgs/AGENTS.md#launch-browser-refuses-to-launch-itself-1342
+                    # quattro moved the MOZ_LOG probe into the --private branch; anchor above it (#1398).
                     substituteInPlace $out/share/omarchy/bin/omarchy-launch-browser \
-                      --replace-fail 'if $browser_exec --help 2>/dev/null | grep -q MOZ_LOG; then' "$(cat ${./1342-launch-browser-self-call.sh})"
+                      --replace-fail 'private_flag="--private"' "$(sed '$d' ${./1342-launch-browser-self-call.sh})"$'\n'"private_flag=\"--private\""
 
                     # RetroArch loads its cores from /usr/lib/libretro upstream. nixpkgs puts
                     # them inside the wrapper's own store path. The menu resolves that path
