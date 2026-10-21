@@ -2598,7 +2598,6 @@
           shell-restart-race = import ./tests/shell-restart-race.nix {
             pkgs = pkgsFor.${system};
             omarchy = self.packages.${system}.omarchy;
-            omarchySrc = omarchy;
           };
 
           # #1070: `omarchy-menu close` asks the menu to dismiss before hiding it, so a
