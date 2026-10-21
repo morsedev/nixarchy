@@ -108,16 +108,11 @@
   "setup.security.ssh-agent" = "session: enables the user's gcr-ssh-agent socket";
   "setup.security.sudoless-docker" =
     "guidance: exits 1 before its writers (decision 6, checks.menu-guidance)";
-  "style.font.cjk.auto" = "session: restarts the user's shell unit";
-  "style.font.cjk.hk" = "session: restarts the user's shell unit";
-  "style.font.cjk.jp" = "session: restarts the user's shell unit";
-  "style.font.cjk.kr" = "session: restarts the user's shell unit";
-  "style.font.cjk.sc" = "session: restarts the user's shell unit";
-  "style.font.cjk.tc" = "session: restarts the user's shell unit";
   "trigger.reminder.clear" = "session: creates, shows or clears the user's reminder timer unit";
   "trigger.reminder.set" = "session: creates, shows or clears the user's reminder timer unit";
   "trigger.reminder.show" = "session: creates, shows or clears the user's reminder timer unit";
-  "trigger.toggle.crash-capture" = "session: toggles the user's crash-capture unit";
+  "trigger.toggle.crash-capture-on" = "session: toggles the user's crash-capture unit";
+  "trigger.toggle.crash-capture-off" = "session: toggles the user's crash-capture unit";
   "update.config.shell" = "session: restarts the user's shell unit";
   "update.firmware" =
     "unreached: the /boot install runs only if /usr/lib/fwupd/efi/fwupdx64.efi exists, which it never does here (decision 11)";
