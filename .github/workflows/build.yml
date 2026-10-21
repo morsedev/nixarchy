@@ -465,6 +465,8 @@ jobs:
           # in this repository is decided by one script
           # (.github/scripts/pr-touches-build.sh), so there is one denylist to
           # audit rather than a condition per job.
+          # The two failure() forms are the failure digest and the install
+          # classification (#1384): they only add output after a red, never skip.
           allowed_ifs="needs.gate.outputs.relevant == 'true'
           needs.gate.outputs.relevant != 'true'
           always() && needs.gate.outputs.relevant == 'true'
@@ -473,7 +475,9 @@ jobs:
           needs.gate.outputs.relevant == 'true' && needs.gate.outputs.fork != 'true'
           always() && needs.gate.outputs.relevant == 'true' && needs.gate.outputs.fork != 'true'
           \${{ '${{' }} !cancelled() }}
-          needs.gate.result != 'success'"
+          needs.gate.result != 'success'
+          failure()
+          (failure() || cancelled()) && needs.gate.outputs.relevant == 'true' && needs.gate.outputs.fork != 'true'"
 
           rogue=""
           # Process substitution, NOT a heredoc. The first version of this
@@ -1221,6 +1225,14 @@ jobs:
           nix-instantiate --parse result-sys/etc/nixarchy/apps-template.nix >/dev/null
           echo "app template parses"
 
+      # What failed, last, where a reader of the log ends up (#1384). Reads the
+      # log build-unless-proven.sh keeps; never changes this job's status.
+      - name: Failure digest
+        id: digest
+        if: failure()
+        continue-on-error: true
+        run: .github/scripts/failure-digest.sh
+
   # The opt-in applications, built so nobody else has to.
   #
   # Every other job here builds a system or a check, and an app nobody enables
@@ -1316,6 +1328,8 @@ jobs:
     needs: gate
     if: ${{ !cancelled() }}
     runs-on: ubuntu-26.04
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
     # 45, not 30. The job's own work is ~20 minutes (see below), so 30 looked
     # like ample headroom until 2026-09-04, when a cache.nixos.org stall of
     # 21-24 minutes hit four independent runners inside the same wall-clock
@@ -1324,7 +1338,9 @@ jobs:
     # and four PRs sat unmergeable behind an outage in somebody else's CDN.
     # This cap exists to fail a hung job in half an hour rather than six
     # (411c6a4); 45 still does that, while surviving a substituter blip.
-    timeout-minutes: 45
+    # 75 since #1378: a nixpkgs bump starts every closure cold, and its split
+    # halves still ran past 45 (vm-toplevel alone 23 min, 7.5 GiB fetched).
+    timeout-minutes: 75
     # A nixpkgs bump has no proofs, so the one `system` job ran ~50 minutes and
     # timed out (#1332). Since #1341 it is two halves, split by what builds
     # hypr-rdp: this one and `system-checks`, with `system` below as the
@@ -1472,12 +1488,22 @@ jobs:
           CACHE_BUDGET_MIB: "2560"
         run: .github/scripts/cache-budget.sh
 
+      # What failed, last, where a reader of the log ends up (#1384). Reads the
+      # log build-unless-proven.sh keeps; never changes this job's status.
+      - name: Failure digest
+        id: digest
+        if: failure()
+        continue-on-error: true
+        run: .github/scripts/failure-digest.sh
+
   system-checks:
     needs: gate
     if: ${{ !cancelled() }}
     runs-on: ubuntu-26.04
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
     # Cap and concurrency group as system-build: see the comments there (#1341).
-    timeout-minutes: 45
+    timeout-minutes: 75
     concurrency:
       group: >-
         ${{ github.workflow }}-system-checks-${{ github.ref }}-${{
@@ -1761,6 +1787,14 @@ jobs:
         # writable and the shell's IPC is reachable.
         run: .github/scripts/build-unless-proven.sh .#checks.x86_64-linux.plugin
 
+      # What failed, last, where a reader of the log ends up (#1384). Reads the
+      # log build-unless-proven.sh keeps; never changes this job's status.
+      - name: Failure digest
+        id: digest
+        if: failure()
+        continue-on-error: true
+        run: .github/scripts/failure-digest.sh
+
   # The required context. Two halves since #1341, so a nixpkgs bump, which has
   # no proofs, fits each 45-minute cap; this passes only when both did. Never
   # skipped: a skipped required check passes the merge gate (#1144).
@@ -1772,10 +1806,14 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Both halves of the system check passed
+        env:
+          # Which derivations failed, from the halves' Failure digest steps.
+          DIGEST_BUILD: ${{ needs.system-build.outputs.digest }}
+          DIGEST_CHECKS: ${{ needs.system-checks.outputs.digest }}
         run: |
           fail=0
           for r in "gate=${{ needs.gate.result }}" "system-build=${{ needs.system-build.result }}" "system-checks=${{ needs.system-checks.result }}"; do
-            [ "${r#*=}" = success ] || { echo "::error::${r%%=*} concluded '${r#*=}'; refusing to report system as passed (#1341, #1134)"; fail=1; }
+            [ "${r#*=}" = success ] || { echo "::error::${r%%=*} concluded '${r#*=}'; refusing to report system as passed (#1341, #1134). Failed: ${DIGEST_BUILD:-}${DIGEST_CHECKS:+ }${DIGEST_CHECKS:-}"; fail=1; }
           done
           exit $fail
 
