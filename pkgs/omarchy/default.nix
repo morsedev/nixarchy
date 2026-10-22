@@ -447,16 +447,13 @@ stdenvNoCC.mkDerivation {
                     # CARRIED (#1192): the panel Loader's error handler called a function Qt 6's Loader lacks.
                     patch -d "$out/share/omarchy" -p1 --forward --fuzz=0 < ${./1192-panel-loader-errorstring.patch}
 
-                    # Bound the Lua source scan so a loop in hyprland.lua cannot pin a CPU when this menu opens.
-                    substituteInPlace $out/share/omarchy/bin/omarchy-menu-keybindings \
-                      --replace-fail "    lua -E - <<'LUA'" "    timeout 3 lua -E - <<'LUA'"
                     # Drop undescribed binds in non-default submaps (a hint plugin registers
                     # ~2,800): the list otherwise exceeds the 128 KiB single-argument limit
                     # omarchy-menu-select hands to perl and omarchy-shell, so the menu never opens.
                     substituteInPlace $out/share/omarchy/bin/omarchy-menu-keybindings \
                       --replace-fail '      if (!seen) return' '      if (!seen) return
       if (f["submap"] != "" && f["description"] == "") { seen = 0; return }' \
-                      --replace-fail "printf 'v17\\n'" "printf 'v17-submaps\\n'"
+                      --replace-fail "printf 'v19\\n'" "printf 'v19-submaps\\n'"
                     # Summoned from a key bind, the menu reaches the screen after omarchy-shell's
                     # 2 s IPC timeout; the script then exits and the menu it opened does nothing.
                     # The script waits for the selection anyway, so a longer timeout costs nothing.
