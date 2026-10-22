@@ -217,7 +217,7 @@ nixarchy manual on your disk, and a tutor that answers about *your* machine
 rather than about Linux in general. It is what a first hour on an unfamiliar
 desktop should have.
 
-It is **on by default**. Click the snowflake in the bar, or run `nixi`; bind a
+It is **on by default**. Click the snowflake in the bar, or run `nixi`, or open Menu ▸ Nixarchy ▸ Nixi; bind a
 key if you like (`o.bind("SUPER + H", "Nixi", "nixi")` in
 `~/.config/hypr/bindings.lua`). The tutor uses **Claude Code** unless you pick
 another agent (SUPER + , in the card: Codex or OpenCode).
@@ -281,7 +281,7 @@ From the README, the whole of it:
 
 ```nix
 {
-  inputs.nixarchy.url = "github:olafkfreund/nixarchy/v4.0.3-2";
+  inputs.nixarchy.url = "github:olafkfreund/nixarchy/release";
 
   outputs = { nixpkgs, nixarchy, ... }: {
     nixosConfigurations.mymachine = nixpkgs.lib.nixosSystem {
@@ -299,9 +299,8 @@ From the README, the whole of it:
 }
 ```
 
-gliff, Gliff-Manager and `programs.nixarchy.defaultPlugins` arrive in a release
-after v4.0.4-3; until one is marked Latest, use `github:olafkfreund/nixarchy`
-(main) to get them.
+`release` follows the newest tagged release; to pin one exactly,
+use its tag instead, for example `github:olafkfreund/nixarchy/v4.0.6-1`.
 
 And for the user who will sit at the desktop, in Home Manager:
 
