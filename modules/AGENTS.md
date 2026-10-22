@@ -601,7 +601,10 @@ turns the adapter bondable when a default agent registers, so a session-wide
 `NoInputNoOutput` agent leaves an unattended pairing window open. The
 `omarchy-bluetooth-device pair` command starts it only for the user's outgoing
 pair and stops that process afterward. BlueZ's last-agent cleanup should
-return the adapter to non-bondable; that still needs confirmation on hardware.
+return the adapter to non-bondable; that is confirmed in BlueZ's source
+(`agent.c:156-171`), and on hardware it is masked whenever the user runs
+their own agent (blueman, bluedevil, GNOME), which `nixarchy-verify` reports
+as a note rather than a failure.
 
 omarchy-migrate-notify and omarchy-tailscale-receive are deliberately
 absent. Their conditions (ConditionPathIsDirectory=/usr/share/omarchy/
@@ -1094,7 +1097,7 @@ How, and why this way:
   is the line the user wrote -- or the one boxes sets at `mkDefault`. Reading
   `services.boxes.enable` instead would put a podman panel on a machine where
   boxes are on and podman was forced back off; tests/options.nix
-  (`podmanViaBoxes`) holds that line. The Trigger ▸ Podman row uses the same gate
+  (`podmanViaBoxes`) holds that line. The Nixarchy ▸ Podman row uses the same gate
   at the Nix level (`podmanEnabled`), so it does not exist without podman.
 - **A seeded bind can outlive its plugin.** Seed binds reach every new home,
   gated defaults do not. So the helper checks the plugin's directory before
@@ -1973,6 +1976,21 @@ with no name (`nixarchy-vm create`, `run`...), so none could ever succeed
 that the call can work. While the plugin is off, `trigger.vm-list` stands in
 and opens `nixarchy vm list` in a terminal. The CLI stays, for the terminal
 and for the panel itself.
+
+**#1412 is the precedent for a root of our own, and it makes the "no
+precedent" above stale.** #1329 moved the panels from Apps to Trigger, so
+they read as Omarchy's. #1412 gave them a folder: a `nixarchy` root, emitted
+right after `trigger`, with `parent = "nixarchy"` on `trigger.devenv`,
+`trigger.podman`, `trigger.box`, `trigger.vm`, `trigger.vm-list`,
+`trigger.herdr`, `trigger.github-actions`, `trigger.gitlab-pipelines` and
+`help` (Nixi). The ids did not change, because `help` must keep its id (nixi's
+installer writes a row under it) and the rest would break every user override.
+The parent is set, not derived from the id. Two traps. The append-at-the-end
+behaviour above would put the root after About, so the generator rebuilds
+`full` to place it after `trigger`, and exits if upstream has no `trigger`.
+And a row that loses `parent` falls back to Trigger and stays reachable, so
+only `menu-tree.py`'s folder assertions see it. `trigger.hardware.hybrid-gpu`
+stays under Trigger: it is upstream's menu, not a nixarchy panel.
 
 <a id="dim-when-the-app-is-in-the-selection-or-already-on"></a>
 

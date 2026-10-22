@@ -125,7 +125,7 @@
 
     # Why: docs/internals/flake.md#the-rdp-server-behind-the-remote-desktop-feature-1
     hypr-rdp = {
-      url = "github:MuNeNiCK/hypr-rdp/v0.1.6";
+      url = "github:MuNeNiCK/hypr-rdp/v0.1.7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -2072,6 +2072,7 @@
             "update-available"
             "user-unit-links"
             "verify-boxes"
+            "verify-sections"
           ];
         in
         {
@@ -2265,6 +2266,13 @@
           explain = import ./tests/explain.nix {
             pkgs = pkgsFor.${system};
             inherit (self.packages.${system}) explain;
+          };
+
+          # The packaged nixarchy-verify reaches its summary on a machine with
+          # nothing (#1416). See tests/verify-runs.nix.
+          verify-runs = import ./tests/verify-runs.nix {
+            pkgs = pkgsFor.${system};
+            inherit (self.packages.${system}) verify;
           };
 
           # nixarchy-channel edits a file the user owns, so the check is mostly
@@ -2556,6 +2564,20 @@
           # See tests/omarchy-newest.nix.
           omarchy-newest = import ./tests/omarchy-newest.nix {
             pkgs = pkgsFor.${system};
+          };
+
+          # Install and edge's VM checks never share p620 (#1365). See
+          # tests/vm-host-free.nix.
+          vm-host-free = import ./tests/vm-host-free.nix {
+            pkgs = pkgsFor.${system};
+          };
+
+          # The omarchy-app skill's templates build as written (#1406). See
+          # tests/omarchy-app-template.nix.
+          omarchy-app-template = import ./tests/omarchy-app-template.nix {
+            pkgs = pkgsFor.${system};
+            omarchy = self.packages.${system}.omarchy;
+            patch = ./pkgs/omarchy/1406-omarchy-app-nix.patch;
           };
 
           # The nightly's cache step: probe every allowlist entry, rebuild and
