@@ -799,6 +799,11 @@
     reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
     pacman = "Called only by omarchy-update-system-pkgs, -refresh-pacman, -reinstall-pkgs and -channel-set. pkgs/omarchy/nix-bin replaces the update entry points and modules/apps.nix overrides the Channel rows, so none reaches it.";
   };
+  "omarchy-kernel" = {
+    class = "vendor";
+    reason = "Vendored unchanged (#1423, quattro be54892). Switches the kernel Limine boots by default, through /etc/default/limine and an initramfs rebuild: Arch-only. Its one caller, the Update > Kernel menu row, shows only when `omarchy-kernel list` prints more than one kernel, and that list reads /usr/lib/modules/*/pkgbase, which NixOS does not have -- so the row never appears and nothing reaches `set`.";
+    allow = "initrd-boot";
+  };
   "omarchy-remove-ai-ollama" = {
     class = "vendor";
     reason = "Vendored unchanged. Reached only by upstream's remove.ai.ollama row, which modules/apps.nix hides: Ollama here is services.ollama under programs.nixarchy.localAi, and disabling its unit by hand would only last until the next switch.";
