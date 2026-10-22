@@ -1943,7 +1943,11 @@ pkgs.testers.runNixOSTest {
                "omarchy-install-hermes-cli", "omarchy-install-openclaw-cli",
                # The /usr/bin/python3 here runs on the REMOTE machine an account
                # is transferred to, not on this one.
-               "omarchy-agent-account-transfer"]
+               "omarchy-agent-account-transfer",
+               # Upstream's Limine default-kernel switcher (#1423). Its one
+               # caller, Update > Kernel, shows only when /usr/lib/modules/*/
+               # pkgbase lists two kernels, and NixOS has no such files.
+               "omarchy-kernel"]
     # The offender list comes back from one plain shell command and the
     # filtering happens here. A first version did the allowlisting in shell
     # too, with a grep -v -x -F against a generated list, and it matched
