@@ -153,6 +153,11 @@
     reason = "Its root PATH reset points at /usr/bin, which holds nothing here, so it lost tee and getent while writing lock-screen PAM files; and its `-x /usr/bin/fprintd-list` probe was never true. On quattro (#1285) it also copies a resume hook into /usr/lib and a stop timeout into /etc/systemd; modules/nixos.nix declares both, so those copies are dropped.";
     allow = "etc-write";
   };
+  "omarchy-apply-pacman" = {
+    class = "vendor";
+    reason = "Vendored unchanged. This row exists only to record why an Arch-only package path is carried and unreachable -- see `pacman` below.";
+    pacman = "Renders /etc/pacman.conf and the mirrorlist from channel templates and a regional profile. Not reached by nixarchy's flows: its callers are omarchy-refresh-pacman (unreachable, see its row), the Arch installer's post-install, and omarchy-channel-set, which is patched to delegate to nixarchy-channel (#1431).";
+  };
   "omarchy-apply-system" = {
     class = "vendor";
     reason = "Vendored unchanged, and the account-tools match is prose: `usermod` appears only in the --defer-provisioning paragraph of the usage heredoc, which comment-stripping cannot see. The script is upstream's chroot entry point for an Arch install; the installer here is installer/, which never calls it.";
