@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 1436
 author: olafkfreund
 ---
@@ -54,3 +54,5 @@ rebuild.
 2. Should the media be hosted in nixarchy's `docs/` (as `nixarchy-demo.gif`
    is) or linked from ai-mirror's release assets? I propose a copy in
    `docs/video/`, matching the existing layout.
+
+**Decided: as proposed** (new section on docs/index.md; media copied into docs/video/).
