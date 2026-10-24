@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 1436
 intent: intent/2026-10-24-1436-ai-mirror-background.md
 ---
