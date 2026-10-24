@@ -352,8 +352,8 @@ GTK4 apps, while Firefox must be on a visible workspace. It still needs your
 yes, and the mark is still red. Some things it cannot confirm, so it reports
 "not confirmed" for page-owned ARIA state, Chrome spin buttons and GTK4 text.
 [The measured table](https://github.com/olafkfreund/ai-mirror/blob/v3.0.0/src/ai_mirror/gotchas.md)
-lists them. If you script `ai-mirror input`, it needs `--generation` since
-3.0.0.
+lists them. If you script the CLI: since 3.0.0 `window`, `launch`, `a11y-act`
+and a clipboard write need `--generation` too, as `input` always did.
 
 **An agent asks, and you answer.** When an agent wants control, a dialog asks
 you on screen. Nothing is granted until you press yes, and an unanswered
