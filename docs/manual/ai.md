@@ -147,7 +147,8 @@ programs.nixarchy.mcp = false;
 
 That switch is only the NixOS server. **ai-mirror**, which lets an agent see and
 drive your desktop, has its own, and it is off:
-`programs.nixarchy.aiMirror.mcp = true;` connects the same agents to it.
+`programs.nixarchy.aiMirror.mcp = true;` connects the same agents to it; it can also
+[work in a window you are not using](plugins#ai-mirror).
 The two are independent. Read [what the yes does not cover](plugins#ai-mirror)
 before you turn it on.
 

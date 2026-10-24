@@ -185,10 +185,12 @@
 
     # ai-mirror (#773): the binary and its bar widget on every machine, no agent
     # connected to it unless programs.nixarchy.aiMirror.mcp says so. Pinned to a
-    # commit like voice above; this one is v2.1.0.
+    # commit like voice above; this one is v3.0.0.
+    # 3.0.0 (#1436): every mutating call needs generation;
+    # a11y_act set_value/select, read back
     # Why: spec/2026-09-22-773-ai-mirror-default.md
     ai-mirror = {
-      url = "github:olafkfreund/ai-mirror/93101a82a344a51fdf7d2318b2b136b2a8cd6435";
+      url = "github:olafkfreund/ai-mirror/77df7007478345dd0365c5433f99f985e097a4c7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
