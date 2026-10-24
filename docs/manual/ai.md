@@ -273,6 +273,13 @@ nothing: every permission request is cancelled before it reaches you.
 **Mechanic** (`/mechanic`) makes the change for you, and every step needs your
 **Allow**. `/tour` and `/learn` work with no agent at all.
 
+At Guide, secret files such as `~/.ssh`, credentials, `.env` files and
+`/run/agenix` stay away from the agent's file tools and shell. Guide refuses
+Codex, which can read them without asking: use Claude, or switch to Mechanic.
+In either level, an agent that goes silent for five minutes (fifteen while a
+tool runs) ends the conversation with an error, and the card offers a new one
+instead of hanging.
+
 Its menu search merges rows the way the stock menu does, so a partial override
 keeps the rest of the row; setting your own `services.nixi.package` gives you
 upstream's merge instead.
@@ -281,9 +288,13 @@ upstream's merge instead.
 first session, and its [README](https://github.com/olafkfreund/nixi-nixarchy#readme)
 covers the options.
 
-There is also a snowflake companion that listens and talks. It asks only
-through Nixi's bridge, so it follows Guide and Mechanic like the card does. It
-is off by default; turn it on in Home Manager:
+### The snowflake companion
+
+There is also a snowflake companion: a small snowflake on your desktop that
+listens and talks back. It asks only through Nixi's bridge, so it follows
+Guide and Mechanic like the card does. By voice it can ask how a herdr session
+is doing and open it; sending text to one needs a click in Mechanic, and never
+happens at Guide. It is off by default; turn it on in Home Manager:
 
 ```nix
 services.nixi.companion.enable = true;
