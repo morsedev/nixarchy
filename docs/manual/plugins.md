@@ -347,13 +347,14 @@ the connection back out of Claude Code, Codex and opencode (and pi, where it is 
 | red, pulsing | an agent **controls** the keyboard and mouse |
 
 **Without your cursor.** Since 3.0.0 an agent can act on a window you are not
-using, and neither your pointer nor your focus moves: measured in Chrome and
-GTK4 apps, while Firefox must be on a visible workspace. It still needs your
-yes, and the mark is still red. Some things it cannot confirm, so it reports
-"not confirmed" for page-owned ARIA state, Chrome spin buttons and GTK4 text.
+using: your pointer does not move and the window you are in keeps focus,
+measured in Chrome, Firefox and GTK4 apps (Firefox only on a visible
+workspace). It still needs your yes, and the mark is still red. Some results
+it cannot confirm, and it says "not confirmed": a list option whose state the
+page owns, a Chrome spin button, GTK4 text.
 [The measured table](https://github.com/olafkfreund/ai-mirror/blob/v3.0.0/src/ai_mirror/gotchas.md)
-lists them. If you script the CLI: since 3.0.0 `window`, `launch`, `a11y-act`
-and a clipboard write need `--generation` too, as `input` always did.
+has every case. If you script the CLI: since 3.0.0 `window`, `launch` and
+`a11y-act` need `--generation` too, as `input` always did.
 
 **An agent asks, and you answer.** When an agent wants control, a dialog asks
 you on screen. Nothing is granted until you press yes, and an unanswered
