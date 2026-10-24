@@ -346,6 +346,15 @@ the connection back out of Claude Code, Codex and opencode (and pi, where it is 
 | the theme's accent colour, steady | an agent is **watching**: reading the screen, the clipboard or the accessibility tree. It cannot type or click. |
 | red, pulsing | an agent **controls** the keyboard and mouse |
 
+**Without your cursor.** Since 3.0.0 an agent can act on a window you are not
+using, and neither your pointer nor your focus moves: measured in Chrome and
+GTK4 apps, while Firefox must be on a visible workspace. It still needs your
+yes, and the mark is still red. Some things it cannot confirm, so it reports
+"not confirmed" for page-owned ARIA state, Chrome spin buttons and GTK4 text.
+[The measured table](https://github.com/olafkfreund/ai-mirror/blob/v3.0.0/src/ai_mirror/gotchas.md)
+lists them. If you script `ai-mirror input`, it needs `--generation` since
+3.0.0.
+
 **An agent asks, and you answer.** When an agent wants control, a dialog asks
 you on screen. Nothing is granted until you press yes, and an unanswered
 request lapses after 30 seconds. **Super+Shift+Escape**, or a click on the
@@ -366,6 +375,8 @@ after ten idle minutes, and `ai-mirror control off` in any terminal ends it at
 once.
 
 **[Watch the nixarchy desktop showcase](https://github.com/olafkfreund/ai-mirror/releases/download/demo-2026-09-18/nixarchy-desktop-showcase.mp4)**, recorded by an agent through ai-mirror.
+
+**[Watch an agent work without your cursor](../video/ai-mirror-background.mp4)**
 
 ## Runtime themes
 
