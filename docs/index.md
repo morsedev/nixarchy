@@ -153,7 +153,7 @@ are not using: it sets a slider, picks a list item and saves a form while your
 cursor and your focused terminal stay where you left them.
 
 It still needs your yes, and the bar mark is red the whole time. Super+Shift+Escape
-takes control back. What it cannot confirm, it says so: see
+takes control back. When it cannot confirm a result, it says so: see
 [the page](manual/plugins#ai-mirror).
 
 ![An agent sets a slider, picks a list item and saves a form in Chrome while the cursor and the focused terminal never move](video/ai-mirror-background.gif)
