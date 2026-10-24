@@ -43,6 +43,11 @@ in its own worktree. The checkout on `feat/1177-pi-mcp` is left alone.
      `narHash`, `lastModified`)
    - `nix eval --raw .#inputs.ai-mirror.packages.x86_64-linux.ai-mirror.version`,
      or a `nix build` of it, giving `3.0.0`
+   **Deviation:** the input sits at `flake.nix:296-302` on `main`; the
+   version eval ran against the pinned URL
+   (`nix eval --raw github:olafkfreund/ai-mirror/77df700…#packages.x86_64-linux.ai-mirror.version`
+   → `3.0.0`), since `.#inputs` is not a flake output; the existing "this one
+   is v2.1.0" comment now says v3.0.0. Lock: only the `ai-mirror` node moved.
    Traps: don't run a bare `nix flake update`, which would move every input.
 
 2. **Manual.**
