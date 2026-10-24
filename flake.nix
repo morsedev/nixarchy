@@ -190,7 +190,7 @@
     # a11y_act set_value/select, read back
     # Why: spec/2026-09-22-773-ai-mirror-default.md
     ai-mirror = {
-      url = "github:olafkfreund/ai-mirror/77df7007478345dd0365c5433f99f985e097a4c7";
+      url = "github:olafkfreund/ai-mirror/211b130e755178a0d34d6b1efe5d92146168af92";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
