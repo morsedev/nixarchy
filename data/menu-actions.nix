@@ -33,12 +33,18 @@
     "guidance: exits 1 before its writers (decision 6, checks.menu-guidance)";
   "remove.service.ssh-agent" =
     "session: disables the user's gcr-ssh-agent socket and removes its own environment.d file";
+  "setup.config.git" =
+    "session: restarts the user's XCompose unit after writing the git identity into ~/.XCompose";
   "setup.config.xcompose" = "session: restarts the user's XCompose unit";
   "setup.default.agent.agy" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.amp" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.claude" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.codex" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.commandcode" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.copilot" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
@@ -46,11 +52,23 @@
     "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.cursor-agent" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.devin" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.dsh" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.freebuff" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.grok" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.hermes" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.kilo" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.kimi" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.kiro-cli" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.mcode" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.muse" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
@@ -63,6 +81,8 @@
   "setup.default.agent.ori" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.agent.pi" =
+    "session: the OpenClaw branch starts a user unit; other agents never take it";
+  "setup.default.agent.qwen" =
     "session: the OpenClaw branch starts a user unit; other agents never take it";
   "setup.default.browser.brave" =
     "unreached: pacman is omarchy-lifecycle-dispatch reading /var/lib/pacman/local, which x86_64 never reaches (exit 0 first)";

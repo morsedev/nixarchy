@@ -323,7 +323,7 @@
   };
   "omarchy-launch-browser" = {
     class = "patch";
-    reason = "It reads the browser's .desktop from {~/.local,~/.nix-profile,/usr}/share/applications. On NixOS those live under /run/current-system/sw and /etc/profiles/per-user, so the lookup found nothing. It also refuses a default browser entry that runs the launcher itself, which recursed without bound when a 4.0.4 session met 4.0.5's mimeapps list (#1342).";
+    reason = "It refuses a default browser entry that runs the launcher itself, which recursed without bound when a 4.0.4 session met 4.0.5's mimeapps list (#1342). The desktop-file search-path edit went with quattro 1381fa0, which reads XDG_DATA_DIRS (#1447).";
   };
   "omarchy-launch-editor" = {
     class = "patch";
@@ -344,7 +344,7 @@
   };
   "omarchy-launch-webapp" = {
     class = "patch";
-    reason = "Four edits: the desktop-file search paths, the chromium-browser.desktop fallback name, `chromium*` added to the browser case, and the no-browser message. The `env -u BROWSER` edit went in 4.0.5: upstream's omarchy-cmd-default-browser does it now.";
+    reason = "Three edits: the chromium-browser.desktop fallback name, `chromium*` added to the browser case, and quoting `$browser_exec` for uwsm-app. The search-path and no-browser edits went with quattro 1381fa0, which reads XDG_DATA_DIRS and refuses an empty browser itself (#1447); the `env -u BROWSER` edit went in 4.0.5.";
   };
   "omarchy-menu" = {
     class = "patch";

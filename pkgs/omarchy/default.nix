@@ -595,21 +595,6 @@ stdenvNoCC.mkDerivation {
                     # No $BROWSER edit: quattro's omarchy-cmd-default-browser runs
                     # xdg-settings under `env -u BROWSER` itself.
 
-                    # omarchy-launch-webapp and omarchy-launch-browser find the browser by
-                    # reading its .desktop out of {~/.local,~/.nix-profile,/usr}/share/
-                    # applications. On NixOS a system package's desktop file is under
-                    # /run/current-system/sw and a per-user one under /etc/profiles/per-user,
-                    # so that search finds nothing, the command substitution collapses to
-                    # empty, and the launcher runs `uwsm-app -- --app=<url>`:
-                    #
-                    #   Error: Path "--app=https://search.nixos.org/options" does not exist!
-                    for f in omarchy-launch-webapp omarchy-launch-browser; do
-                      substituteInPlace $out/share/omarchy/bin/$f \
-                        --replace-fail \
-                          '{~/.local,~/.nix-profile,/usr}/share/applications' \
-                          '{~/.local,~/.nix-profile,/etc/profiles/per-user/$USER,/run/current-system/sw,/usr}/share/applications'
-                    done
-
                     # Why: pkgs/AGENTS.md#launch-browser-refuses-to-launch-itself-1342
                     # quattro moved the MOZ_LOG probe into the --private branch; anchor above it (#1398).
                     substituteInPlace $out/share/omarchy/bin/omarchy-launch-browser \
@@ -958,23 +943,7 @@ stdenvNoCC.mkDerivation {
               --replace-fail '*) browser="chromium.desktop" ;;' \
               '*) browser="chromium-browser.desktop" ;;'
 
-            # And say so when the browser cannot be resolved at all, rather than
-            # handing uwsm-app an --app= flag to run as a program. The message it
-            # produced named the URL, which reads like the URL is at fault.
             substituteInPlace $out/share/omarchy/bin/omarchy-launch-webapp \
-              --replace-fail 'if ! omarchy-cmd-browser-handoff "$browser_exec" --app=' \
-              'if [ -z "$browser_exec" ]; then
-          echo "omarchy-launch-webapp: no browser found for $browser." >&2
-          echo "Set one with: xdg-settings set default-web-browser <name>.desktop" >&2
-          echo "Installed browsers:" >&2
-          find {~/.local,~/.nix-profile,/etc/profiles/per-user/$USER,/run/current-system/sw}/share/applications \
-            -maxdepth 1 -name "*.desktop" 2>/dev/null |
-            xargs -r grep -l "^Categories=.*WebBrowser" 2>/dev/null |
-            xargs -r -n1 basename | sed "s/^/  /" >&2
-          exit 1
-        fi
-
-        if ! omarchy-cmd-browser-handoff "$browser_exec" --app=' \
               --replace-fail 'exec setsid uwsm-app -- $browser_exec' \
               'exec setsid uwsm-app -- "$browser_exec"'
 
@@ -1127,7 +1096,7 @@ stdenvNoCC.mkDerivation {
                     # Each id is its own command; antigravity is the one that differs.
                     # Why: pkgs/AGENTS.md#default-agent-menu-commands-use-the-id
                     # is absent -- is the one this loop exists to prevent.
-                    for a in agy claude codex copilot crush cursor-agent grok hermes kimi muse omp openclaw opencode ori pi; do
+                    for a in agy amp claude codex commandcode copilot crush cursor-agent devin dsh freebuff grok hermes kilo kimi kiro-cli mcode muse omp openclaw opencode ori pi qwen; do
                       substituteInPlace $menu \
                         --replace-fail "== \\\"$a\\\" ]]" "== \\\"$a\\\" ]] && command -v $a >/dev/null"
                     done
