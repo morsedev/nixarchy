@@ -74,6 +74,16 @@ becomes a declaration too, not a terminal command the next rebuild forgets.
 See **[Flatpak and Snap](manual/flatpak-and-snap)**, including what Snap
 confinement means on NixOS.
 
+## A guide that knows this machine
+
+Press `SUPER + H`, or click the ✨ in the bar, and **nixi** opens: a card you
+ask "how do I…" in plain words. It answers from the nixarchy manual on your
+disk and can look at your machine. In Guide, the default, it changes nothing;
+in Mechanic it asks before every step. An optional snowflake companion listens
+and talks back, through the same two levels.
+
+See **[Nixi](manual/ai#nixi-on-super--h)**.
+
 ## Panels, not terminals
 
 The jobs nixarchy adds to Omarchy live in the shell itself. Each is a panel on
@@ -144,6 +154,27 @@ the GPU your configuration already declares. It refuses to build without one,
 and the refusal explains why with the measurements behind it.
 
 See **[the AI page](manual/ai)**.
+
+## An agent that uses your desktop without taking it
+
+**ai-mirror** lets an agent drive the dialog or the unlabelled button on your
+real desktop, and it asks you first. Since 3.0.0 it can do that in a window you
+are not using: it sets a slider, picks a list item and saves a form while your
+cursor and your focused terminal stay where you left them.
+
+It still needs your yes, and the bar mark is red the whole time. Super+Shift+Escape
+takes control back. When it cannot confirm a result, it says so: see
+[the page](manual/plugins#ai-mirror).
+
+![An agent sets a slider, picks a list item and saves a form in Chrome while the cursor and the focused terminal never move](video/ai-mirror-background.gif)
+
+[The same, as video (69 KB)](video/ai-mirror-background.mp4)
+
+```nix
+programs.nixarchy.aiMirror.mcp = true;
+```
+
+connects your agents to it. It is off until you set that.
 
 ## Get this machine back on new hardware
 
