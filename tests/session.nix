@@ -2513,9 +2513,8 @@ pkgs.testers.runNixOSTest {
     owe_wait(lambda st: owe_on_still(st) and st.get("render_alive"),
              "the still again, renderer warm, before step 4")
 
-    # 4. Lock with a video background set, which is what makes LockView load
-    # LockFeedSurface.qml (its Loader is `active: video && loadBackground
-    # && ...`) and therefore `import Owe.LockFeed`.
+    # 4. Lock with a video background set. Since quattro 1381fa0 (#15289) the
+    # lock screen shows the video's still poster and plays nothing (#1447).
     aim(f"omarchy-theme-bg-set {owe_video_path}")
     # Locking before the first frame cancels owe >= 0.2.11's handoff (the lock
     # pauses the renderer), so wait for engine as the first poll does.
@@ -2532,17 +2531,6 @@ pkgs.testers.runNixOSTest {
         f"owe's renderer is alive but engine is {status.get('engine')!r} -- the "
         f"handoff did not finish before locking: {status}")
 
-    # No IPC route exists for the lock screen's feed loader: Service.qml's
-    # IpcHandler exposes only lock/isLocked/status/preview/hidePreview, none
-    # of which name the feed Loader or the plugin inside it. So the positive
-    # assertion is the same motion series as the desktop, pointed at the lock
-    # screen instead: owed starts the feed for every locked session by
-    # default (policy.c's owed_policy_allows_feed, applied in main.c's
-    # apply_feed_state -- no config needed), and a live LockFeed moves with
-    # the video while LockView's cached-poster fallback is static. That is
-    # also what makes break (a) -- QML_IMPORT_PATH removed -- go red here:
-    # with the module unresolvable, the Loader falls back to the static
-    # poster and the series stops moving.
     lock_reply = aim("omarchy-shell lock lock")
     assert lock_reply.strip() == "ok", f"omarchy-shell lock lock answered {lock_reply!r}"
     machine.wait_until_succeeds(
@@ -2565,18 +2553,11 @@ pkgs.testers.runNixOSTest {
     lock_spread = spread(lock_readings)
     print(f"owe: lock screen series spread {lock_spread}")
 
-    # The mechanism, asserted. Removing QML_IMPORT_PATH (break (a), probe run
-    # on #1156) left the series above MOVING (spread 227): the video stays
-    # visible under the lock by another path, so motion alone cannot prove
-    # Owe.LockFeed loaded. The import error is what moved with the break.
-    journal = machine.succeed("journalctl -b -t omarchy-shell --no-pager")
-    assert 'Owe.LockFeed" is not installed' not in journal, (
-        "the lock screen cannot import Owe.LockFeed (is QML_IMPORT_PATH set?); "
-        "LockFeedSurface.qml falls back to the cached poster")
-
-    # The outcome a user sees: the locked screen shows the video moving.
-    assert lock_spread > 60, (
-        f"the locked screen does not move over 2.8s (spread {lock_spread})")
+    # settle() has already seen the poster: a saturated frame of the video.
+    # The outcome a user sees: it holds still rather than playing (#15289).
+    assert lock_spread <= 60, (
+        f"the locked screen plays the video over 2.8s (spread {lock_spread}); "
+        f"since quattro 1381fa0 it shows the still")
 
     # Unlock. The lock screen blanks after a few seconds, and a keystroke
     # that only wakes it is lost, so a single send_chars timed out on one
