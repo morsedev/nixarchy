@@ -1932,6 +1932,9 @@ pkgs.testers.runNixOSTest {
                # launch.
                "omarchy-cmd-default-browser", "omarchy-update-restart",
                "omarchy-cmd-browser-handoff",
+               # quattro 1381fa0 (#1447): the launchers read XDG_DATA_DIRS the
+               # same way, with the same /usr default.
+               "omarchy-launch-browser", "omarchy-launch-webapp",
                # Arch installers for apps that are mapped, excepted or absent
                # here: Claude Desktop (data/menu-exceptions.nix), its Chromium
                # extension, Superwhisper, and the hermes/openclaw CLIs, which
