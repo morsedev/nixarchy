@@ -67,6 +67,9 @@ rustPlatform.buildRustPackage {
       bsd2
     ];
     mainProgram = "gliff";
-    platforms = [ "x86_64-linux" ];
+    # aarch64-linux (Apple Silicon) is a pure Rust + GTK4/Wayland build, so it
+    # builds there too. Upstream only tested x86_64; relax the gate rather than
+    # forbid the architecture (patched in morsedev/nixarchy).
+    platforms = lib.platforms.linux;
   };
 }
