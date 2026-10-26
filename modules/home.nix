@@ -1083,7 +1083,12 @@ in
       # ai-mirror on every nixarchy machine, whether or not its widget is on
       # (#773): the seeded kill switch runs it. lowPrio for #809's reason -- a
       # user who installs it through its own module keeps theirs.
-      ++ lib.optional (osConfig.programs.nixarchy.enable or false) (
+      #
+      # Patched for aarch64-linux: upstream's ai-mirror flake only declares
+      # x86_64-linux, so referencing it on Apple Silicon fails evaluation with
+      # "attribute 'aarch64-linux' missing". Gated on isx86_64; on aarch64 the
+      # package and widget are simply not installed.
+      ++ lib.optional ((osConfig.programs.nixarchy.enable or false) && pkgs.stdenv.hostPlatform.isx86_64) (
         lib.lowPrio inputs.ai-mirror.packages.${pkgs.stdenv.hostPlatform.system}.ai-mirror
       )
       # #1153: owed, the renderer and the owe CLI, only when the NixOS module
@@ -2189,7 +2194,10 @@ in
       # `defaultPlugins.ai-mirror = true` still forces ours. NOT a `gate`: a
       # gate means "on wherever its feature is", which ai-mirror is not; it is
       # on everywhere, except where you run it yourself.
-      defaultPlugins.ai-mirror = lib.mkDefault (!(config.programs.ai-mirror.enable or false));
+      #
+      # Patched for aarch64-linux: the plugin comes from the same x86_64-only
+      # flake as the package above, so it is disabled off-architecture too.
+      defaultPlugins.ai-mirror = lib.mkDefault ((!(config.programs.ai-mirror.enable or false)) && pkgs.stdenv.hostPlatform.isx86_64);
 
       # Why: modules/AGENTS.md#the-default-plugins-are-on-from-the-first-login
       plugins = lib.mapAttrs' (
