@@ -2090,8 +2090,14 @@ in
       # makes them match: reference and installed now agree by construction,
       # on metal and in a VM alike. nixpkgs ignores the vendor that is not
       # present, so naming both costs nothing.
-      cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-      cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+      #
+      # Patched for aarch64-linux (Apple Silicon): the "ignores the vendor
+      # that is not present" claim does not hold off-x86 -- intel-microcode
+      # declares meta.platforms x86_64-linux, so with enableRedistributable
+      # Firmware true on ARM, evaluation fails with "refuse to evaluate
+      # package microcode-intel". Gate both on isx86_64; ARM needs neither.
+      cpu.intel.updateMicrocode = lib.mkDefault (config.hardware.enableRedistributableFirmware && pkgs.stdenv.hostPlatform.isx86_64);
+      cpu.amd.updateMicrocode = lib.mkDefault (config.hardware.enableRedistributableFirmware && pkgs.stdenv.hostPlatform.isx86_64);
 
       # Wireless, Bluetooth and most graphics need a firmware blob, and this is
       # the option that puts one on the machine.
