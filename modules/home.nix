@@ -1099,7 +1099,9 @@ in
       file.".local/share/icons/ai-mirror-agent" =
         lib.mkIf (cfg.defaultPlugins.ai-mirror && !(config.programs.ai-mirror.enable or false))
           {
-            source = "${inputs.ai-mirror.packages.${pkgs.stdenv.hostPlatform.system}.cursor}/share/icons/ai-mirror-agent";
+            source = "${
+              inputs.ai-mirror.packages.${pkgs.stdenv.hostPlatform.system}.cursor
+            }/share/icons/ai-mirror-agent";
           };
 
       # Same reason as the NixOS module's copy: upstream's default screenshot
